@@ -2,11 +2,11 @@
 name = "finmoney"
 version = "0.1.0"
 edition = "2024"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["Your Name <mixme2@gmail.com>"]
 description = "A precise, panic-free money library for Rust with currency-aware values, configurable rounding, and exchange-grade tick handling"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/finmoney"
-homepage = "https://github.com/yourusername/finmoney"
+repository = "https://github.com/MixMe/finmoney"
+homepage = "https://github.com/MixMe/finmoney"
 documentation = "https://docs.rs/finmoney"
 keywords = ["money", "currency", "decimal", "finance", "trading"]
 categories = ["data-structures", "mathematics", "science"]
