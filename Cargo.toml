@@ -1,6 +1,6 @@
 [package]
 name = "finmoney"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 authors = ["Your Name <mixme2@gmail.com>"]
 description = "A precise, panic-free money library for Rust with currency-aware values, configurable rounding, and exchange-grade tick handling"
