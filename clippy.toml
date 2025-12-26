@@ -1,0 +1,10 @@
+# Clippy configuration for finmoney
+cognitive-complexity-threshold = 30
+too-many-arguments-threshold = 7
+type-complexity-threshold = 250
+single-char-binding-names-threshold = 4
+trivial-copy-size-limit = 64
+pass-by-value-size-limit = 256
+too-many-lines-threshold = 100
+avoid-breaking-exported-api = true
+suppress-restriction-lint-in-const = false
