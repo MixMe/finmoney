@@ -24,6 +24,18 @@ include = [
 ]
 rust-version = "1.85"
 
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
+#panic = "abort"
+strip = "symbols"
+
+[profile.dev]
+opt-level = 1
+debug = true
+
 [dependencies]
 rust_decimal = { version = "1.39.0", features = ["maths"] }
 rust_decimal_macros = "1.39.0"

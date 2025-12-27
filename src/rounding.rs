@@ -66,6 +66,7 @@ pub enum MoneyRoundingStrategy {
 
 impl MoneyRoundingStrategy {
     /// Converts this rounding strategy to the corresponding `rust_decimal::RoundingStrategy`.
+    #[inline]
     pub fn to_decimal_strategy(self) -> rust_decimal::RoundingStrategy {
         match self {
             MoneyRoundingStrategy::MidpointNearestEven => {

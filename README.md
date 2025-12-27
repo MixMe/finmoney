@@ -44,16 +44,16 @@ finmoney = { version = "0.1", features = ["serde"] }
 ## Basic Usage
 
 ```rust
-use finmoney::{FinMoney, finmoneyCurrency, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinmoneyCurrency, MoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 // Create currencies
-let usd = finmoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
-let btc = finmoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
+let usd = FinmoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
+let btc = FinmoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
 
 // Or use predefined currencies
-let usd = finmoneyCurrency::USD;
-let eur = finmoneyCurrency::EUR;
+let usd = FinmoneyCurrency::USD;
+let eur = FinmoneyCurrency::EUR;
 
 // Create FinMoney values
 let price = FinMoney::new(dec!(10.50), usd);
@@ -77,8 +77,8 @@ println!("{}", divided); // 3.50 USD
 finmoney prevents mixing different currencies:
 
 ```rust
-let usd_amount = FinMoney::new(dec!(100), finmoneyCurrency::USD);
-let eur_amount = FinMoney::new(dec!(85), finmoneyCurrency::EUR);
+let usd_amount = FinMoney::new(dec!(100), FinmoneyCurrency::USD);
+let eur_amount = FinMoney::new(dec!(85), FinmoneyCurrency::EUR);
 
 // This will return an error
 match usd_amount + eur_amount {

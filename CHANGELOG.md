@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2024-12-26
+## [1.0.0] - 2024-12-26
 
 ### Added
 - Initial release of finmoney library
 - `FinMoney` type for precise monetary calculations
-- `finmoneyCurrency` type for currency representation
+- `FinmoneyCurrency` type for currency representation
 - Support for multiple rounding strategies
 - Exchange-grade tick handling for trading applications
 - Currency safety (prevents mixing different currencies)

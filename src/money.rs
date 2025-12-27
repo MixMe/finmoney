@@ -46,6 +46,7 @@ impl Default for FinMoney {
 impl FinMoney {
     // -- Internal Helpers --
 
+    #[inline]
     fn assert_same_currency(&self, other: Self) -> Result<(), MoneyError> {
         if !self.currency.is_same_currency(&other.currency) {
             return Err(MoneyError::CurrencyMismatch {
@@ -56,6 +57,7 @@ impl FinMoney {
         Ok(())
     }
 
+    #[inline]
     fn round_result(&self, value: Decimal, strategy: MoneyRoundingStrategy) -> Decimal {
         value.round_dp_with_strategy(
             self.currency.get_precision().into(),
@@ -103,10 +105,8 @@ impl FinMoney {
         currency: FinMoneyCurrency,
         strategy: MoneyRoundingStrategy,
     ) -> Self {
-        let rounded_amount = amount.round_dp_with_strategy(
-            currency.get_precision().into(),
-            strategy.to_decimal_strategy(),
-        );
+        let s = strategy.to_decimal_strategy();
+        let rounded_amount = amount.round_dp_with_strategy(currency.get_precision().into(), s);
         Self {
             amount: rounded_amount,
             currency,
@@ -136,11 +136,13 @@ impl FinMoney {
     // -- Accessors (getters) --
 
     /// Returns the amount of FinMoney as a `Decimal`.
+    #[inline]
     pub fn get_amount(&self) -> Decimal {
         self.amount
     }
 
     /// Returns the currency of this FinMoney value.
+    #[inline]
     pub fn get_currency(&self) -> FinMoneyCurrency {
         self.currency
     }
@@ -151,11 +153,13 @@ impl FinMoney {
     }
 
     /// Returns the precision used for this FinMoney value.
+    #[inline]
     pub fn get_precision(&self) -> u8 {
         self.currency.get_precision()
     }
 
     /// Returns the currency code.
+    #[inline]
     pub fn get_currency_code(&self) -> &str {
         self.currency.get_code()
     }
@@ -253,8 +257,7 @@ impl FinMoney {
     ///
     /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
     pub fn compare(&self, other: FinMoney) -> Result<Ordering, MoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(self.amount.cmp(&other.amount))
+        self.compare_to(other)
     }
 
     /// Compares this `FinMoney` with another, ensuring the same currency.
@@ -532,9 +535,8 @@ impl FinMoney {
 
     /// Rounds the amount to `dp` decimal places using the provided rounding strategy.
     pub fn round_dp_with_strategy(&self, dp: u32, strategy: MoneyRoundingStrategy) -> FinMoney {
-        let rounded = self
-            .amount
-            .round_dp_with_strategy(dp, strategy.to_decimal_strategy());
+        let s = strategy.to_decimal_strategy();
+        let rounded = self.amount.round_dp_with_strategy(dp, s);
         FinMoney::new(rounded, self.currency)
     }
 
@@ -581,18 +583,15 @@ impl FinMoney {
         if tick <= Decimal::ZERO {
             return Err(MoneyError::InvalidTick);
         }
-
+        let s = strategy.to_decimal_strategy();
         // Fast path: if tick is a power of 10 (like 0.001), just round to decimal places
         if let Some(dp) = Self::tick_power10_dp(tick) {
-            let amt = self
-                .amount
-                .round_dp_with_strategy(dp, strategy.to_decimal_strategy());
+            let amt = self.amount.round_dp_with_strategy(dp, s);
             return Ok(FinMoney::new(amt, self.currency));
         }
-
         // General path: k = amount / tick → round k to integer → multiply back
         let k = self.amount / tick;
-        let k_rounded = k.round_dp_with_strategy(0, strategy.to_decimal_strategy());
+        let k_rounded = k.round_dp_with_strategy(0, s);
         let amt = k_rounded * tick;
         Ok(FinMoney::new(amt, self.currency))
     }
@@ -655,11 +654,13 @@ impl FinMoney {
     }
 
     /// Helper function: if tick == 10^-dp (e.g., 0.001 → dp=3), return dp.
+    #[inline]
     pub fn tick_power10_dp(tick: Decimal) -> Option<u32> {
-        let s = tick.scale();
-        let scaled = tick * Decimal::from(10u32).powi(s as i64);
-        if scaled == Decimal::ONE {
-            Some(s)
+        // If tick is exactly 10^-dp, then its scale is dp and its coefficient is 1.
+        // This avoids powi/multiply allocations and is significantly cheaper.
+        let dp = tick.scale();
+        if tick == Decimal::new(1, dp) {
+            Some(dp)
         } else {
             None
         }

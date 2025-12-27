@@ -25,13 +25,21 @@ impl Default for FinMoneyCurrency {
         Self {
             id: 0,
             name: None,
-            code: "UNDEFINED".parse().unwrap(),
+            code: FinMoneyCurrency::UNDEFINED_CODE,
             precision: 8,
         }
     }
 }
 
 impl FinMoneyCurrency {
+    // Common internal codes to avoid repeated parsing/allocations.
+    const UNDEFINED_CODE: TinyAsciiStr<16> = unsafe {
+        TinyAsciiStr::from_utf8_unchecked(*b"UNDEFINED\0\0\0\0\0\0\0")
+    };
+    const INVALID_CODE: TinyAsciiStr<16> = unsafe {
+        TinyAsciiStr::from_utf8_unchecked(*b"INVALID\0\0\0\0\0\0\0\0\0")
+    };
+
     /// Creates a new currency with the specified parameters.
     ///
     /// # Arguments
@@ -58,14 +66,14 @@ impl FinMoneyCurrency {
     /// ```
     pub fn new(
         id: i32,
-        code: String,
+        code: impl Into<String>,
         name: Option<String>,
         precision: u8,
     ) -> Result<FinMoneyCurrency> {
         if precision > 28 {
             return Err(MoneyError::InvalidPrecision(precision as u32));
         }
-
+        let code = code.into();
         let parsed_name = match name {
             Some(n) => match Self::sanitize_and_parse_name(&n) {
                 Ok(ascii_name) => Some(ascii_name),
@@ -74,7 +82,7 @@ impl FinMoneyCurrency {
             None => None,
         };
 
-        let parsed_code = Self::sanitize_and_parse_code(&code)
+        let parsed_code = Self::sanitize_and_parse_code(code.as_str())
             .map_err(|_| MoneyError::InvalidCurrencyCode(code))?;
 
         Ok(Self {
@@ -107,7 +115,7 @@ impl FinMoneyCurrency {
 
         let sanitized_name = name.and_then(|n| Self::sanitize_and_parse_name(&n).ok());
         let sanitized_code =
-            Self::sanitize_and_parse_code(&code).unwrap_or_else(|_| "INVALID".parse().unwrap());
+            Self::sanitize_and_parse_code(&code).unwrap_or(FinMoneyCurrency::INVALID_CODE);
 
         Self {
             id,
@@ -124,12 +132,12 @@ impl FinMoneyCurrency {
 
     /// Returns the human-readable name of this currency, if available.
     pub fn get_name(&self) -> Option<&str> {
-        self.name.as_deref()
+        self.name.as_ref().map(|s| s.as_str())
     }
 
     /// Returns the currency code (e.g., "USD", "EUR").
     pub fn get_code(&self) -> &str {
-        &self.code
+        self.code.as_str()
     }
 
     /// Returns the precision (number of decimal places) for this currency.
@@ -161,6 +169,22 @@ impl FinMoneyCurrency {
     }
 
     // Helper methods for sanitization
+    #[inline]
+    fn sanitize_ascii_truncate(input: &str, max_len: usize) -> String {
+        // Build only up to `max_len` chars; replace any non-ASCII char with '_'.
+        // This avoids allocating/collecting the full string for long inputs.
+        let mut out = String::with_capacity(std::cmp::min(input.len(), max_len));
+        let mut count = 0usize;
+        for ch in input.chars() {
+            if count == max_len {
+                break;
+            }
+            out.push(if ch.is_ascii() { ch } else { '_' });
+            count += 1;
+        }
+        out
+    }
+
     fn sanitize_and_parse_name(
         name: &str,
     ) -> std::result::Result<TinyAsciiStr<52>, tinystr::ParseError> {
@@ -169,20 +193,8 @@ impl FinMoneyCurrency {
             return Ok(ascii_name);
         }
 
-        // Sanitize by replacing non-ASCII characters with underscores
-        let sanitized = name
-            .chars()
-            .map(|c| if c.is_ascii() { c } else { '_' })
-            .collect::<String>();
-
-        // Truncate if needed
-        let truncated = if sanitized.len() > 52 {
-            &sanitized[..52]
-        } else {
-            &sanitized
-        };
-
-        truncated.parse()
+        let sanitized = Self::sanitize_ascii_truncate(name, 52);
+        sanitized.parse()
     }
 
     fn sanitize_and_parse_code(
@@ -193,20 +205,8 @@ impl FinMoneyCurrency {
             return Ok(ascii_code);
         }
 
-        // Sanitize by replacing non-ASCII characters with underscores
-        let sanitized = code
-            .chars()
-            .map(|c| if c.is_ascii() { c } else { '_' })
-            .collect::<String>();
-
-        // Truncate if needed
-        let truncated = if sanitized.len() > 16 {
-            &sanitized[..16]
-        } else {
-            &sanitized
-        };
-
-        truncated.parse()
+        let sanitized = Self::sanitize_ascii_truncate(code, 16);
+        sanitized.parse()
     }
 }
 
