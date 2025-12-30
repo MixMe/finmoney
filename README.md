@@ -35,10 +35,10 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "0.1"
+finmoney = "1.0.1"
 
 # For serialization support
-finmoney = { version = "0.1", features = ["serde"] }
+finmoney = { version = "1.0.1", features = ["serde"] }
 ```
 
 ## Basic Usage
