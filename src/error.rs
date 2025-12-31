@@ -22,6 +22,10 @@ pub enum MoneyError {
     InvalidCurrencyCode(String),
     /// Currency name is invalid or too long.
     InvalidCurrencyName(String),
+    /// Arithmetic overflow occurred during calculation.
+    ArithmeticOverflow,
+    /// Invalid amount (e.g., NaN or infinite values).
+    InvalidAmount(String),
 }
 
 impl fmt::Display for MoneyError {
@@ -39,6 +43,8 @@ impl fmt::Display for MoneyError {
             MoneyError::InvalidTick => write!(f, "Invalid tick size (must be positive)"),
             MoneyError::InvalidCurrencyCode(code) => write!(f, "Invalid currency code: {}", code),
             MoneyError::InvalidCurrencyName(name) => write!(f, "Invalid currency name: {}", name),
+            MoneyError::ArithmeticOverflow => write!(f, "Arithmetic overflow occurred"),
+            MoneyError::InvalidAmount(msg) => write!(f, "Invalid amount: {}", msg),
         }
     }
 }

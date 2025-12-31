@@ -93,6 +93,52 @@ impl FinMoneyCurrency {
         })
     }
 
+    /// Creates a new currency using pre-calculated `TinyAsciiStr` values.
+    ///
+    /// This method is more efficient than `new()` when you already have `TinyAsciiStr` values,
+    /// as it avoids string parsing and sanitization. Use this when working with pre-validated
+    /// currency data or when performance is critical.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - Unique identifier for the currency
+    /// * `code` - Pre-calculated currency code as `TinyAsciiStr<16>`
+    /// * `name` - Optional pre-calculated human-readable name as `TinyAsciiStr<52>`
+    /// * `precision` - Number of decimal places (must be <= 28)
+    ///
+    /// # Errors
+    ///
+    /// Returns `MoneyError::InvalidPrecision` if precision > 28.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::FinMoneyCurrency;
+    /// use tinystr::TinyAsciiStr;
+    ///
+    /// let code: TinyAsciiStr<16> = "USD".parse().unwrap();
+    /// let name: TinyAsciiStr<52> = "US Dollar".parse().unwrap();
+    /// let usd = FinMoneyCurrency::new_from_tiny(1, code, Some(name), 2)?;
+    /// # Ok::<(), finmoney::MoneyError>(())
+    /// ```
+    pub fn new_from_tiny(
+        id: i32,
+        code: TinyAsciiStr<16>,
+        name: Option<TinyAsciiStr<52>>,
+        precision: u8,
+    ) -> Result<FinMoneyCurrency> {
+        if precision > 28 {
+            return Err(MoneyError::InvalidPrecision(precision as u32));
+        }
+
+        Ok(Self {
+            id,
+            name,
+            code,
+            precision,
+        })
+    }
+
     /// Creates a new currency with basic parameters, using a fallback for invalid inputs.
     ///
     /// This method is more lenient than `new()` and will sanitize invalid characters
@@ -174,13 +220,11 @@ impl FinMoneyCurrency {
         // Build only up to `max_len` chars; replace any non-ASCII char with '_'.
         // This avoids allocating/collecting the full string for long inputs.
         let mut out = String::with_capacity(std::cmp::min(input.len(), max_len));
-        let mut count = 0usize;
-        for ch in input.chars() {
+        for (count, ch) in input.chars().enumerate() {
             if count == max_len {
                 break;
             }
             out.push(if ch.is_ascii() { ch } else { '_' });
-            count += 1;
         }
         out
     }

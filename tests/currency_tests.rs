@@ -140,3 +140,58 @@ fn test_currency_long_names_and_codes() {
         assert!(name.len() <= 52);
     }
 }
+
+#[test]
+fn test_currency_new_from_tiny() -> Result<(), MoneyError> {
+    use tinystr::TinyAsciiStr;
+
+    // Test with both code and name
+    let code: TinyAsciiStr<16> = "USD".parse().unwrap();
+    let name: TinyAsciiStr<52> = "US Dollar".parse().unwrap();
+    let usd = FinMoneyCurrency::new_from_tiny(1, code, Some(name), 2)?;
+
+    assert_eq!(usd.get_id(), 1);
+    assert_eq!(usd.get_code(), "USD");
+    assert_eq!(usd.get_name(), Some("US Dollar"));
+    assert_eq!(usd.get_precision(), 2);
+
+    // Test with code only (no name)
+    let btc_code: TinyAsciiStr<16> = "BTC".parse().unwrap();
+    let btc = FinMoneyCurrency::new_from_tiny(2, btc_code, None, 8)?;
+
+    assert_eq!(btc.get_id(), 2);
+    assert_eq!(btc.get_code(), "BTC");
+    assert_eq!(btc.get_name(), None);
+    assert_eq!(btc.get_precision(), 8);
+
+    Ok(())
+}
+
+#[test]
+fn test_currency_new_from_tiny_invalid_precision() {
+    use tinystr::TinyAsciiStr;
+
+    let code: TinyAsciiStr<16> = "USD".parse().unwrap();
+    let result = FinMoneyCurrency::new_from_tiny(1, code, None, 29);
+    
+    assert!(matches!(result, Err(MoneyError::InvalidPrecision(29))));
+}
+
+#[test]
+fn test_currency_new_from_tiny_performance() -> Result<(), MoneyError> {
+    use tinystr::TinyAsciiStr;
+
+    // Pre-calculate the TinyAsciiStr values
+    let code: TinyAsciiStr<16> = "PERF".parse().unwrap();
+    let name: TinyAsciiStr<52> = "Performance Test Currency".parse().unwrap();
+
+    // This should be more efficient than using new() with String conversion
+    let currency = FinMoneyCurrency::new_from_tiny(999, code, Some(name), 4)?;
+
+    assert_eq!(currency.get_id(), 999);
+    assert_eq!(currency.get_code(), "PERF");
+    assert_eq!(currency.get_name(), Some("Performance Test Currency"));
+    assert_eq!(currency.get_precision(), 4);
+
+    Ok(())
+}

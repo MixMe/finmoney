@@ -5,14 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.3] - 2024-12-31
+
+### Added
+- `FinMoneyCurrency::new_from_tiny()` method for creating currencies with pre-calculated `TinyAsciiStr` values
+  - More efficient than `new()` when working with pre-validated currency data
+  - Avoids string parsing and sanitization overhead
+  - Useful for performance-critical applications
+
+## [1.0.2] - 2024-12-30
+
+### Added
+- Performance optimizations for currency creation
+- Enhanced documentation with more examples
 
 ## [1.0.0] - 2024-12-26
 
 ### Added
 - Initial release of finmoney library
 - `FinMoney` type for precise monetary calculations
-- `FinmoneyCurrency` type for currency representation
+- `FinMoneyCurrency` type for currency representation
 - Support for multiple rounding strategies
 - Exchange-grade tick handling for trading applications
 - Currency safety (prevents mixing different currencies)

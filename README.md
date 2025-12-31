@@ -35,25 +35,25 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "1.0.2"
+finmoney = "1.0.3"
 
 # For serialization support
-finmoney = { version = "1.0.2", features = ["serde"] }
+finmoney = { version = "1.0.3", features = ["serde"] }
 ```
 
 ## Basic Usage
 
 ```rust
-use finmoney::{FinMoney, FinmoneyCurrency, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 // Create currencies
-let usd = FinmoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
-let btc = FinmoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
+let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
+let btc = FinMoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
 
 // Or use predefined currencies
-let usd = FinmoneyCurrency::USD;
-let eur = FinmoneyCurrency::EUR;
+let usd = FinMoneyCurrency::USD;
+let eur = FinMoneyCurrency::EUR;
 
 // Create FinMoney values
 let price = FinMoney::new(dec!(10.50), usd);
@@ -72,13 +72,29 @@ let divided = price.divided_by_decimal(dec!(3), MoneyRoundingStrategy::MidpointN
 println!("{}", divided); // 3.50 USD
 ```
 
+## Performance-Optimized Currency Creation
+
+For performance-critical applications, use `new_from_tiny` with pre-calculated `TinyAsciiStr` values:
+
+```rust
+use finmoney::FinMoneyCurrency;
+use tinystr::TinyAsciiStr;
+
+// Pre-calculate TinyAsciiStr values (more efficient)
+let code: TinyAsciiStr<16> = "USD".parse().unwrap();
+let name: TinyAsciiStr<52> = "US Dollar".parse().unwrap();
+
+// Create currency without string parsing overhead
+let usd = FinMoneyCurrency::new_from_tiny(1, code, Some(name), 2)?;
+```
+
 ## Currency Safety
 
 finmoney prevents mixing different currencies:
 
 ```rust
-let usd_amount = FinMoney::new(dec!(100), FinmoneyCurrency::USD);
-let eur_amount = FinMoney::new(dec!(85), FinmoneyCurrency::EUR);
+let usd_amount = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+let eur_amount = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);
 
 // This will return an error
 match usd_amount + eur_amount {
@@ -92,7 +108,7 @@ match usd_amount + eur_amount {
 Perfect for exchange trading where prices must conform to specific tick sizes:
 
 ```rust
-let price = FinMoney::new(dec!(10.567), finmoneyCurrency::USD);
+let price = FinMoney::new(dec!(10.567), FinMoneyCurrency::USD);
 
 // Round to nearest 0.25 tick
 let rounded = price.to_tick_nearest(dec!(0.25))?;
@@ -117,7 +133,7 @@ if price.is_multiple_of_tick(dec!(0.01)) {
 Multiple rounding strategies are available:
 
 ```rust
-let amount = FinMoney::new(dec!(10.555), finmoneyCurrency::USD);
+let amount = FinMoney::new(dec!(10.555), FinMoneyCurrency::USD);
 
 // Banker's rounding (default)
 let rounded1 = amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointNearestEven);
@@ -132,8 +148,8 @@ let rounded3 = amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointT
 ## Percentage Calculations
 
 ```rust
-let initial = FinMoney::new(dec!(100), finmoneyCurrency::USD);
-let current = FinMoney::new(dec!(110), finmoneyCurrency::USD);
+let initial = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+let current = FinMoney::new(dec!(110), FinMoneyCurrency::USD);
 
 // Calculate percentage change
 let change = current.percent_change_from(initial)?;
@@ -146,8 +162,8 @@ let change = FinMoney::percent_change(initial, current)?;
 ## Comparison Operations
 
 ```rust
-let price1 = FinMoney::new(dec!(10.50), finmoneyCurrency::USD);
-let price2 = FinMoney::new(dec!(9.75), finmoneyCurrency::USD);
+let price1 = FinMoney::new(dec!(10.50), FinMoneyCurrency::USD);
+let price2 = FinMoney::new(dec!(9.75), FinMoneyCurrency::USD);
 
 // Safe comparisons (returns Result)
 if price1.is_greater_than(price2)? {
@@ -167,19 +183,19 @@ if price1.is_greater_than_decimal(dec!(10)) {
 ## Properties and Utilities
 
 ```rust
-let FinMoney = FinMoney::new(dec!(-15.75), finmoneyCurrency::USD);
+let money = FinMoney::new(dec!(-15.75), FinMoneyCurrency::USD);
 
-println!("Is zero: {}", FinMoney.is_zero());
-println!("Is positive: {}", FinMoney.is_positive());
-println!("Is negative: {}", FinMoney.is_negative());
-println!("Has fraction: {}", FinMoney.has_fraction());
-println!("Is integer: {}", FinMoney.is_integer());
+println!("Is zero: {}", money.is_zero());
+println!("Is positive: {}", money.is_positive());
+println!("Is negative: {}", money.is_negative());
+println!("Has fraction: {}", money.has_fraction());
+println!("Is integer: {}", money.is_integer());
 
 // Mathematical operations
-let abs_FinMoney = FinMoney.abs();        // 15.75 USD
-let neg_FinMoney = FinMoney.negated();    // 15.75 USD
-let floor_FinMoney = FinMoney.floor();    // -16.00 USD
-let ceil_FinMoney = FinMoney.ceil();      // -15.00 USD
+let abs_money = money.abs();        // 15.75 USD
+let neg_money = money.negated();    // 15.75 USD
+let floor_money = money.floor();    // -16.00 USD
+let ceil_money = money.ceil();      // -15.00 USD
 ```
 
 ## Error Handling
@@ -189,7 +205,7 @@ All operations that can fail return `Result<T, MoneyError>`:
 ```rust
 use finmoney::MoneyError;
 
-let result = FinMoney1.divided_by_decimal(dec!(0), MoneyRoundingStrategy::default());
+let result = money1.divided_by_decimal(dec!(0), MoneyRoundingStrategy::default());
 match result {
     Ok(value) => println!("Result: {}", value),
     Err(MoneyError::DivisionByZero) => println!("Cannot divide by zero"),
@@ -205,10 +221,10 @@ match result {
 Common currencies are available as constants:
 
 ```rust
-let usd_FinMoney = FinMoney::new(dec!(100), finmoneyCurrency::USD);  // 2 decimal places
-let eur_FinMoney = FinMoney::new(dec!(85), finmoneyCurrency::EUR);   // 2 decimal places
-let btc_FinMoney = FinMoney::new(dec!(0.001), finmoneyCurrency::BTC); // 8 decimal places
-let eth_FinMoney = FinMoney::new(dec!(0.1), finmoneyCurrency::ETH);   // 18 decimal places
+let usd_money = FinMoney::new(dec!(100), FinMoneyCurrency::USD);  // 2 decimal places
+let eur_money = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);   // 2 decimal places
+let btc_money = FinMoney::new(dec!(0.001), FinMoneyCurrency::BTC); // 8 decimal places
+let eth_money = FinMoney::new(dec!(0.1), FinMoneyCurrency::ETH);   // 18 decimal places
 ```
 
 ## Serde Support
@@ -217,7 +233,7 @@ Enable the `serde` feature for serialization support:
 
 ```toml
 [dependencies]
-finmoney = { version = "0.1", features = ["serde"] }
+finmoney = { version = "1.0.3", features = ["serde"] }
 ```
 
 ```rust
@@ -230,8 +246,8 @@ struct Order {
 }
 
 let order = Order {
-    price: FinMoney::new(dec!(10.50), finmoneyCurrency::USD),
-    quantity: FinMoney::new(dec!(5), finmoneyCurrency::USD),
+    price: FinMoney::new(dec!(10.50), FinMoneyCurrency::USD),
+    quantity: FinMoney::new(dec!(5), FinMoneyCurrency::USD),
 };
 
 let json = serde_json::to_string(&order)?;
