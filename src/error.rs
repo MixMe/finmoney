@@ -4,7 +4,7 @@ use std::fmt;
 
 /// Errors that can occur during money operations.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum MoneyError {
+pub enum FinMoneyError {
     /// Attempted to perform an operation between different currencies.
     CurrencyMismatch {
         /// The expected currency code.
@@ -28,28 +28,28 @@ pub enum MoneyError {
     InvalidAmount(String),
 }
 
-impl fmt::Display for MoneyError {
+impl fmt::Display for FinMoneyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            MoneyError::CurrencyMismatch { expected, actual } => write!(
+            FinMoneyError::CurrencyMismatch { expected, actual } => write!(
                 f,
                 "Currency mismatch: expected {}, got {}",
                 expected, actual
             ),
-            MoneyError::DivisionByZero => write!(f, "Division by zero"),
-            MoneyError::InvalidPrecision(p) => {
+            FinMoneyError::DivisionByZero => write!(f, "Division by zero"),
+            FinMoneyError::InvalidPrecision(p) => {
                 write!(f, "Invalid precision: {} (must be <= 28)", p)
             }
-            MoneyError::InvalidTick => write!(f, "Invalid tick size (must be positive)"),
-            MoneyError::InvalidCurrencyCode(code) => write!(f, "Invalid currency code: {}", code),
-            MoneyError::InvalidCurrencyName(name) => write!(f, "Invalid currency name: {}", name),
-            MoneyError::ArithmeticOverflow => write!(f, "Arithmetic overflow occurred"),
-            MoneyError::InvalidAmount(msg) => write!(f, "Invalid amount: {}", msg),
+            FinMoneyError::InvalidTick => write!(f, "Invalid tick size (must be positive)"),
+            FinMoneyError::InvalidCurrencyCode(code) => write!(f, "Invalid currency code: {}", code),
+            FinMoneyError::InvalidCurrencyName(name) => write!(f, "Invalid currency name: {}", name),
+            FinMoneyError::ArithmeticOverflow => write!(f, "Arithmetic overflow occurred"),
+            FinMoneyError::InvalidAmount(msg) => write!(f, "Invalid amount: {}", msg),
         }
     }
 }
 
-impl std::error::Error for MoneyError {}
+impl std::error::Error for FinMoneyError {}
 
-/// Result type alias for operations that can fail with `MoneyError`.
-pub type Result<T> = std::result::Result<T, MoneyError>;
+/// Result type alias for operations that can fail with `FinMoneyError`.
+pub type Result<T> = std::result::Result<T, FinMoneyError>;

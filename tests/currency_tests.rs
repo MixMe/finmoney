@@ -1,9 +1,9 @@
 //! Tests for currency functionality.
 
-use finmoney::{FinMoneyCurrency, MoneyError};
+use finmoney::{FinMoneyCurrency, FinMoneyError};
 
 #[test]
-fn test_currency_creation() -> Result<(), MoneyError> {
+fn test_currency_creation() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
 
     assert_eq!(usd.get_id(), 1);
@@ -15,7 +15,7 @@ fn test_currency_creation() -> Result<(), MoneyError> {
 }
 
 #[test]
-fn test_currency_creation_without_name() -> Result<(), MoneyError> {
+fn test_currency_creation_without_name() -> Result<(), FinMoneyError> {
     let btc = FinMoneyCurrency::new(2, "BTC".to_string(), None, 8)?;
 
     assert_eq!(btc.get_id(), 2);
@@ -29,7 +29,7 @@ fn test_currency_creation_without_name() -> Result<(), MoneyError> {
 #[test]
 fn test_currency_invalid_precision() {
     let result = FinMoneyCurrency::new(1, "USD".to_string(), None, 29);
-    assert!(matches!(result, Err(MoneyError::InvalidPrecision(29))));
+    assert!(matches!(result, Err(FinMoneyError::InvalidPrecision(29))));
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn test_currency_sanitized_creation() {
 }
 
 #[test]
-fn test_currency_with_precision() -> Result<(), MoneyError> {
+fn test_currency_with_precision() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let usd_high_precision = usd.with_precision(4)?;
 
@@ -64,7 +64,7 @@ fn test_currency_with_precision() -> Result<(), MoneyError> {
 
     // Test invalid precision
     let result = usd.with_precision(29);
-    assert!(matches!(result, Err(MoneyError::InvalidPrecision(29))));
+    assert!(matches!(result, Err(FinMoneyError::InvalidPrecision(29))));
 
     Ok(())
 }
@@ -142,7 +142,7 @@ fn test_currency_long_names_and_codes() {
 }
 
 #[test]
-fn test_currency_new_from_tiny() -> Result<(), MoneyError> {
+fn test_currency_new_from_tiny() -> Result<(), FinMoneyError> {
     use tinystr::TinyAsciiStr;
 
     // Test with both code and name
@@ -174,11 +174,11 @@ fn test_currency_new_from_tiny_invalid_precision() {
     let code: TinyAsciiStr<16> = "USD".parse().unwrap();
     let result = FinMoneyCurrency::new_from_tiny(1, code, None, 29);
     
-    assert!(matches!(result, Err(MoneyError::InvalidPrecision(29))));
+    assert!(matches!(result, Err(FinMoneyError::InvalidPrecision(29))));
 }
 
 #[test]
-fn test_currency_new_from_tiny_performance() -> Result<(), MoneyError> {
+fn test_currency_new_from_tiny_performance() -> Result<(), FinMoneyError> {
     use tinystr::TinyAsciiStr;
 
     // Pre-calculate the TinyAsciiStr values

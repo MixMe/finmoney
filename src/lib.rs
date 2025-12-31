@@ -16,7 +16,7 @@
 //! ## Quick Start
 //!
 //! ```rust
-//! use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+//! use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 //! use rust_decimal_macros::dec;
 //!
 //! // Create a currency
@@ -32,7 +32,7 @@
 //!
 //! // Round to tick size
 //! let rounded = price.to_tick_nearest(dec!(0.25))?;
-//! # Ok::<(), finmoney::MoneyError>(())
+//! # Ok::<(), finmoney::FinMoneyError>(())
 //! ```
 
 pub mod currency;
@@ -41,9 +41,9 @@ pub mod money;
 pub mod rounding;
 
 pub use currency::FinMoneyCurrency;
-pub use error::MoneyError;
+pub use error::FinMoneyError;
 pub use money::FinMoney;
-pub use rounding::MoneyRoundingStrategy;
+pub use rounding::FinMoneyRoundingStrategy;
 
 // Re-export commonly used types from dependencies
 pub use rust_decimal::Decimal;

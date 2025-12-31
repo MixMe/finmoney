@@ -1,10 +1,10 @@
 //! Tests for tick handling functionality.
 
-use finmoney::{FinMoney, FinMoneyCurrency, MoneyError, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 #[test]
-fn test_tick_rounding_basic() -> Result<(), MoneyError> {
+fn test_tick_rounding_basic() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
@@ -24,7 +24,7 @@ fn test_tick_rounding_basic() -> Result<(), MoneyError> {
 }
 
 #[test]
-fn test_tick_rounding_directional() -> Result<(), MoneyError> {
+fn test_tick_rounding_directional() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
@@ -56,7 +56,7 @@ fn test_tick_validation() {
 }
 
 #[test]
-fn test_tick_power_of_ten() -> Result<(), MoneyError> {
+fn test_tick_power_of_ten() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
@@ -93,15 +93,15 @@ fn test_tick_invalid() {
 
     // Zero tick should return error
     let result = fin_money.to_tick_nearest(dec!(0));
-    assert!(matches!(result, Err(MoneyError::InvalidTick)));
+    assert!(matches!(result, Err(FinMoneyError::InvalidTick)));
 
     // Negative tick should return error
     let result = fin_money.to_tick_nearest(dec!(-0.25));
-    assert!(matches!(result, Err(MoneyError::InvalidTick)));
+    assert!(matches!(result, Err(FinMoneyError::InvalidTick)));
 }
 
 #[test]
-fn test_tick_edge_cases() -> Result<(), MoneyError> {
+fn test_tick_edge_cases() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
 
     // Test with zero amount
@@ -123,24 +123,24 @@ fn test_tick_edge_cases() -> Result<(), MoneyError> {
 }
 
 #[test]
-fn test_tick_rounding_strategies() -> Result<(), MoneyError> {
+fn test_tick_rounding_strategies() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.625), usd); // Exactly between 10.50 and 10.75
 
-    let rounded_even = fin_money.to_tick(dec!(0.25), MoneyRoundingStrategy::MidpointNearestEven)?;
+    let rounded_even = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     assert_eq!(rounded_even.get_amount(), dec!(10.50)); // Even multiple of 0.25
 
-    let rounded_away = fin_money.to_tick(dec!(0.25), MoneyRoundingStrategy::MidpointAwayFromZero)?;
+    let rounded_away = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointAwayFromZero)?;
     assert_eq!(rounded_away.get_amount(), dec!(10.75));
 
-    let rounded_toward = fin_money.to_tick(dec!(0.25), MoneyRoundingStrategy::MidpointTowardZero)?;
+    let rounded_toward = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointTowardZero)?;
     assert_eq!(rounded_toward.get_amount(), dec!(10.50));
 
     Ok(())
 }
 
 #[test]
-fn test_tick_large_values() -> Result<(), MoneyError> {
+fn test_tick_large_values() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
 
     // Test with large tick size

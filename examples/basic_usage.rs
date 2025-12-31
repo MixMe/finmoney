@@ -1,6 +1,6 @@
 //! Basic usage examples for the finmoney library.
 
-use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let doubled = price * dec!(2);
     println!("Price * 2 = {}", doubled);
 
-    let divided = price.divided_by_decimal(dec!(3), MoneyRoundingStrategy::MidpointNearestEven)?;
+    let divided = price.divided_by_decimal(dec!(3), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     println!("Price / 3 = {}", divided);
     println!();
 
@@ -77,9 +77,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Original: {}", precise_amount);
 
     let rounded_even =
-        precise_amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointNearestEven);
+        precise_amount.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointNearestEven);
     let rounded_away =
-        precise_amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointAwayFromZero);
+        precise_amount.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointAwayFromZero);
 
     println!("Rounded (nearest even): {}", rounded_even);
     println!("Rounded (away from zero): {}", rounded_away);

@@ -1,6 +1,6 @@
 //! Core FinMoney type and operations.
 
-use crate::{FinMoneyCurrency, MoneyError, MoneyRoundingStrategy};
+use crate::{FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
 use rust_decimal::{Decimal, MathematicalOps};
 use rust_decimal_macros::dec;
 use std::cmp::Ordering;
@@ -15,7 +15,7 @@ use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 /// # Examples
 ///
 /// ```rust
-/// use finmoney::{FinMoney, FinMoneyCurrency, MoneyError};
+/// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
 /// use rust_decimal_macros::dec;
 ///
 /// let usd = FinMoneyCurrency::new(1, "USD".to_string(), None, 2)?;
@@ -24,7 +24,7 @@ use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 /// let total = (price + tax)?;
 ///
 /// assert_eq!(total.get_amount(), dec!(11.55));
-/// # Ok::<(), MoneyError>(())
+/// # Ok::<(), FinMoneyError>(())
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -47,9 +47,9 @@ impl FinMoney {
     // -- Internal Helpers --
 
     #[inline]
-    fn assert_same_currency(&self, other: Self) -> Result<(), MoneyError> {
+    fn assert_same_currency(&self, other: Self) -> Result<(), FinMoneyError> {
         if !self.currency.is_same_currency(&other.currency) {
-            return Err(MoneyError::CurrencyMismatch {
+            return Err(FinMoneyError::CurrencyMismatch {
                 expected: self.currency.get_code().to_string(),
                 actual: other.currency.get_code().to_string(),
             });
@@ -58,7 +58,7 @@ impl FinMoney {
     }
 
     #[inline]
-    fn round_result(&self, value: Decimal, strategy: MoneyRoundingStrategy) -> Decimal {
+    fn round_result(&self, value: Decimal, strategy: FinMoneyRoundingStrategy) -> Decimal {
         value.round_dp_with_strategy(
             self.currency.get_precision().into(),
             strategy.to_decimal_strategy(),
@@ -89,21 +89,21 @@ impl FinMoney {
     /// # Examples
     ///
     /// ```rust
-    /// use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
     /// use rust_decimal_macros::dec;
     ///
     /// let usd = FinMoneyCurrency::USD; // 2 decimal places
     /// let FinMoney = FinMoney::new_with_precision(
     ///     dec!(42.567),
     ///     usd,
-    ///     MoneyRoundingStrategy::MidpointNearestEven
+    ///     FinMoneyRoundingStrategy::MidpointNearestEven
     /// );
     /// assert_eq!(FinMoney.get_amount(), dec!(42.57));
     /// ```
     pub fn new_with_precision(
         amount: Decimal,
         currency: FinMoneyCurrency,
-        strategy: MoneyRoundingStrategy,
+        strategy: FinMoneyRoundingStrategy,
     ) -> Self {
         let s = strategy.to_decimal_strategy();
         let rounded_amount = amount.round_dp_with_strategy(currency.get_precision().into(), s);
@@ -170,8 +170,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn plus_money(&self, other: FinMoney) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn plus_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(FinMoney::new(self.amount + other.amount, self.currency))
     }
@@ -185,8 +185,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn minus_money(&self, other: FinMoney) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn minus_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(FinMoney::new(self.amount - other.amount, self.currency))
     }
@@ -200,8 +200,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn multiplied_by_money(&self, other: FinMoney) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn multiplied_by_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(FinMoney::new(self.amount * other.amount, self.currency))
     }
@@ -215,16 +215,16 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    /// Returns `MoneyError::DivisionByZero` if the divisor is zero.
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    /// Returns `FinMoneyError::DivisionByZero` if the divisor is zero.
     pub fn divided_by_money(
         &self,
         other: FinMoney,
-        round_strategy: MoneyRoundingStrategy,
-    ) -> Result<FinMoney, MoneyError> {
+        round_strategy: FinMoneyRoundingStrategy,
+    ) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         if other.amount.is_zero() {
-            return Err(MoneyError::DivisionByZero);
+            return Err(FinMoneyError::DivisionByZero);
         }
         let raw = self.amount / other.amount;
         let rounded = self.round_result(raw, round_strategy);
@@ -235,14 +235,14 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::DivisionByZero` if the divisor is zero.
+    /// Returns `FinMoneyError::DivisionByZero` if the divisor is zero.
     pub fn divided_by_decimal(
         &self,
         d: Decimal,
-        round_strategy: MoneyRoundingStrategy,
-    ) -> Result<FinMoney, MoneyError> {
+        round_strategy: FinMoneyRoundingStrategy,
+    ) -> Result<FinMoney, FinMoneyError> {
         if d.is_zero() {
-            return Err(MoneyError::DivisionByZero);
+            return Err(FinMoneyError::DivisionByZero);
         }
         let raw = self.amount / d;
         let rounded = self.round_result(raw, round_strategy);
@@ -255,8 +255,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn compare(&self, other: FinMoney) -> Result<Ordering, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn compare(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
         self.compare_to(other)
     }
 
@@ -264,8 +264,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn compare_to(&self, other: FinMoney) -> Result<Ordering, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn compare_to(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount.cmp(&other.amount))
     }
@@ -274,8 +274,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn min(&self, other: FinMoney) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn min(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(if self.amount <= other.amount {
             *self
@@ -288,8 +288,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn max(&self, other: FinMoney) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn max(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(if self.amount >= other.amount {
             *self
@@ -317,8 +317,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_less_than(&self, other: FinMoney) -> Result<bool, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn is_less_than(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount < other.amount)
     }
@@ -327,8 +327,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_less_than_or_equal(&self, other: FinMoney) -> Result<bool, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn is_less_than_or_equal(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount <= other.amount)
     }
@@ -347,8 +347,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_greater_than(&self, other: FinMoney) -> Result<bool, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn is_greater_than(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount > other.amount)
     }
@@ -357,8 +357,8 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_greater_than_or_equal(&self, other: FinMoney) -> Result<bool, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    pub fn is_greater_than_or_equal(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount >= other.amount)
     }
@@ -379,15 +379,15 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidPrecision` if the new precision is > 28.
-    pub fn rescale(&self, new_precision: u8) -> Result<FinMoney, MoneyError> {
+    /// Returns `FinMoneyError::InvalidPrecision` if the new precision is > 28.
+    pub fn rescale(&self, new_precision: u8) -> Result<FinMoney, FinMoneyError> {
         let new_currency = self.currency.with_precision(new_precision)?;
         let scaled = self.amount.round_dp(new_precision.into());
         Ok(FinMoney::new(scaled, new_currency))
     }
 
     /// Returns a rounded version of this `FinMoney` using the specified strategy.
-    pub fn rounded(&self, strategy: MoneyRoundingStrategy) -> FinMoney {
+    pub fn rounded(&self, strategy: FinMoneyRoundingStrategy) -> FinMoney {
         let amount = self.round_result(self.amount, strategy);
         FinMoney::new(amount, self.currency)
     }
@@ -477,13 +477,13 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if currencies don't match.
-    /// Returns `MoneyError::DivisionByZero` if initial amount is zero.
-    pub fn percent_change_from(&self, initial: FinMoney) -> Result<Decimal, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
+    /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
+    pub fn percent_change_from(&self, initial: FinMoney) -> Result<Decimal, FinMoneyError> {
         self.assert_same_currency(initial)?;
 
         if initial.amount.is_zero() {
-            return Err(MoneyError::DivisionByZero);
+            return Err(FinMoneyError::DivisionByZero);
         }
 
         Ok(((self.amount - initial.amount) * dec!(100)) / initial.amount)
@@ -494,13 +494,13 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if currencies don't match.
-    /// Returns `MoneyError::DivisionByZero` if initial amount is zero.
-    pub fn negative_percent_change_from(&self, initial: FinMoney) -> Result<Decimal, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
+    /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
+    pub fn negative_percent_change_from(&self, initial: FinMoney) -> Result<Decimal, FinMoneyError> {
         self.assert_same_currency(initial)?;
 
         if initial.amount.is_zero() {
-            return Err(MoneyError::DivisionByZero);
+            return Err(FinMoneyError::DivisionByZero);
         }
 
         Ok(((initial.amount - self.amount) * dec!(100)) / initial.amount)
@@ -511,9 +511,9 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if currencies don't match.
-    /// Returns `MoneyError::DivisionByZero` if initial amount is zero.
-    pub fn percent_change(initial: FinMoney, new_value: FinMoney) -> Result<Decimal, MoneyError> {
+    /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
+    /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
+    pub fn percent_change(initial: FinMoney, new_value: FinMoney) -> Result<Decimal, FinMoneyError> {
         new_value.percent_change_from(initial)
     }
 
@@ -522,19 +522,19 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::CurrencyMismatch` if currencies don't match.
-    /// Returns `MoneyError::DivisionByZero` if initial amount is zero.
+    /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
+    /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
     pub fn negative_percent_change(
         initial: FinMoney,
         new_value: FinMoney,
-    ) -> Result<Decimal, MoneyError> {
+    ) -> Result<Decimal, FinMoneyError> {
         new_value.negative_percent_change_from(initial)
     }
 
     // -- Precision Operations --
 
     /// Rounds the amount to `dp` decimal places using the provided rounding strategy.
-    pub fn round_dp_with_strategy(&self, dp: u32, strategy: MoneyRoundingStrategy) -> FinMoney {
+    pub fn round_dp_with_strategy(&self, dp: u32, strategy: FinMoneyRoundingStrategy) -> FinMoney {
         let s = strategy.to_decimal_strategy();
         let rounded = self.amount.round_dp_with_strategy(dp, s);
         FinMoney::new(rounded, self.currency)
@@ -564,24 +564,24 @@ impl FinMoney {
     /// # Examples
     ///
     /// ```rust
-    /// use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
     /// use rust_decimal_macros::dec;
     ///
     /// let usd = FinMoneyCurrency::USD;
     /// let price = FinMoney::new(dec!(10.567), usd);
     ///
     /// // Round to nearest 0.25
-    /// let rounded = price.to_tick(dec!(0.25), MoneyRoundingStrategy::MidpointNearestEven)?;
+    /// let rounded = price.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     /// assert_eq!(rounded.get_amount(), dec!(10.50));
-    /// # Ok::<(), finmoney::MoneyError>(())
+    /// # Ok::<(), finmoney::FinMoneyError>(())
     /// ```
     pub fn to_tick(
         &self,
         tick: Decimal,
-        strategy: MoneyRoundingStrategy,
-    ) -> Result<FinMoney, MoneyError> {
+        strategy: FinMoneyRoundingStrategy,
+    ) -> Result<FinMoney, FinMoneyError> {
         if tick <= Decimal::ZERO {
-            return Err(MoneyError::InvalidTick);
+            return Err(FinMoneyError::InvalidTick);
         }
         let s = strategy.to_decimal_strategy();
         // Fast path: if tick is a power of 10 (like 0.001), just round to decimal places
@@ -600,27 +600,27 @@ impl FinMoney {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidTick` if tick is zero or negative.
-    pub fn to_tick_down(&self, tick: Decimal) -> Result<FinMoney, MoneyError> {
-        self.to_tick(tick, MoneyRoundingStrategy::ToNegativeInfinity)
+    /// Returns `FinMoneyError::InvalidTick` if tick is zero or negative.
+    pub fn to_tick_down(&self, tick: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.to_tick(tick, FinMoneyRoundingStrategy::ToNegativeInfinity)
     }
 
     /// Rounds up to the nearest tick size (ceiling).
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidTick` if tick is zero or negative.
-    pub fn to_tick_up(&self, tick: Decimal) -> Result<FinMoney, MoneyError> {
-        self.to_tick(tick, MoneyRoundingStrategy::ToPositiveInfinity)
+    /// Returns `FinMoneyError::InvalidTick` if tick is zero or negative.
+    pub fn to_tick_up(&self, tick: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.to_tick(tick, FinMoneyRoundingStrategy::ToPositiveInfinity)
     }
 
     /// Rounds to the nearest tick size using banker's rounding.
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidTick` if tick is zero or negative.
-    pub fn to_tick_nearest(&self, tick: Decimal) -> Result<FinMoney, MoneyError> {
-        self.to_tick(tick, MoneyRoundingStrategy::MidpointNearestEven)
+    /// Returns `FinMoneyError::InvalidTick` if tick is zero or negative.
+    pub fn to_tick_nearest(&self, tick: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.to_tick(tick, FinMoneyRoundingStrategy::MidpointNearestEven)
     }
 
     /// Checks if the amount is a multiple of the given tick size.
@@ -670,7 +670,7 @@ impl FinMoney {
 // -- Operator Overloads --
 
 impl Add for FinMoney {
-    type Output = Result<FinMoney, MoneyError>;
+    type Output = Result<FinMoney, FinMoneyError>;
 
     fn add(self, rhs: Self) -> Self::Output {
         self.plus_money(rhs)
@@ -678,7 +678,7 @@ impl Add for FinMoney {
 }
 
 impl Sub for FinMoney {
-    type Output = Result<FinMoney, MoneyError>;
+    type Output = Result<FinMoney, FinMoneyError>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         self.minus_money(rhs)

@@ -1,7 +1,7 @@
 //! Benchmarks for the finmoney library.
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 use std::hint::black_box;
 
@@ -35,7 +35,7 @@ fn benchmark_fin_money_arithmetic(c: &mut Criterion) {
             fin_money1
                 .divided_by_decimal(
                     black_box(dec!(2)),
-                    black_box(MoneyRoundingStrategy::MidpointNearestEven),
+                    black_box(FinMoneyRoundingStrategy::MidpointNearestEven),
                 )
                 .unwrap()
         })
@@ -111,7 +111,7 @@ fn benchmark_rounding_strategies(c: &mut Criterion) {
         b.iter(|| {
             black_box(fin_money).round_dp_with_strategy(
                 black_box(2),
-                black_box(MoneyRoundingStrategy::MidpointNearestEven),
+                black_box(FinMoneyRoundingStrategy::MidpointNearestEven),
             )
         })
     });
@@ -120,7 +120,7 @@ fn benchmark_rounding_strategies(c: &mut Criterion) {
         b.iter(|| {
             black_box(fin_money).round_dp_with_strategy(
                 black_box(2),
-                black_box(MoneyRoundingStrategy::MidpointAwayFromZero),
+                black_box(FinMoneyRoundingStrategy::MidpointAwayFromZero),
             )
         })
     });

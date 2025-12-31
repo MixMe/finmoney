@@ -1,6 +1,6 @@
 //! Currency representation and management.
 
-use crate::error::{MoneyError, Result};
+use crate::error::{FinMoneyError, Result};
 use tinystr::TinyAsciiStr;
 
 /// Represents a currency with an identifier, optional name, code, and precision.
@@ -51,9 +51,9 @@ impl FinMoneyCurrency {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidPrecision` if precision > 28.
-    /// Returns `MoneyError::InvalidCurrencyCode` if the code is invalid.
-    /// Returns `MoneyError::InvalidCurrencyName` if the name is invalid.
+    /// Returns `FinMoneyError::InvalidPrecision` if precision > 28.
+    /// Returns `FinMoneyError::InvalidCurrencyCode` if the code is invalid.
+    /// Returns `FinMoneyError::InvalidCurrencyName` if the name is invalid.
     ///
     /// # Examples
     ///
@@ -62,7 +62,7 @@ impl FinMoneyCurrency {
     ///
     /// let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
     /// let btc = FinMoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
-    /// # Ok::<(), finmoney::MoneyError>(())
+    /// # Ok::<(), finmoney::FinMoneyError>(())
     /// ```
     pub fn new(
         id: i32,
@@ -71,19 +71,19 @@ impl FinMoneyCurrency {
         precision: u8,
     ) -> Result<FinMoneyCurrency> {
         if precision > 28 {
-            return Err(MoneyError::InvalidPrecision(precision as u32));
+            return Err(FinMoneyError::InvalidPrecision(precision as u32));
         }
         let code = code.into();
         let parsed_name = match name {
             Some(n) => match Self::sanitize_and_parse_name(&n) {
                 Ok(ascii_name) => Some(ascii_name),
-                Err(_) => return Err(MoneyError::InvalidCurrencyName(n)),
+                Err(_) => return Err(FinMoneyError::InvalidCurrencyName(n)),
             },
             None => None,
         };
 
         let parsed_code = Self::sanitize_and_parse_code(code.as_str())
-            .map_err(|_| MoneyError::InvalidCurrencyCode(code))?;
+            .map_err(|_| FinMoneyError::InvalidCurrencyCode(code))?;
 
         Ok(Self {
             id,
@@ -108,7 +108,7 @@ impl FinMoneyCurrency {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidPrecision` if precision > 28.
+    /// Returns `FinMoneyError::InvalidPrecision` if precision > 28.
     ///
     /// # Examples
     ///
@@ -119,7 +119,7 @@ impl FinMoneyCurrency {
     /// let code: TinyAsciiStr<16> = "USD".parse().unwrap();
     /// let name: TinyAsciiStr<52> = "US Dollar".parse().unwrap();
     /// let usd = FinMoneyCurrency::new_from_tiny(1, code, Some(name), 2)?;
-    /// # Ok::<(), finmoney::MoneyError>(())
+    /// # Ok::<(), finmoney::FinMoneyError>(())
     /// ```
     pub fn new_from_tiny(
         id: i32,
@@ -128,7 +128,7 @@ impl FinMoneyCurrency {
         precision: u8,
     ) -> Result<FinMoneyCurrency> {
         if precision > 28 {
-            return Err(MoneyError::InvalidPrecision(precision as u32));
+            return Err(FinMoneyError::InvalidPrecision(precision as u32));
         }
 
         Ok(Self {
@@ -195,10 +195,10 @@ impl FinMoneyCurrency {
     ///
     /// # Errors
     ///
-    /// Returns `MoneyError::InvalidPrecision` if precision > 28.
+    /// Returns `FinMoneyError::InvalidPrecision` if precision > 28.
     pub fn with_precision(&self, precision: u8) -> Result<FinMoneyCurrency> {
         if precision > 28 {
-            return Err(MoneyError::InvalidPrecision(precision as u32));
+            return Err(FinMoneyError::InvalidPrecision(precision as u32));
         }
 
         Ok(FinMoneyCurrency {

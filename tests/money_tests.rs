@@ -1,6 +1,6 @@
 //! Comprehensive tests for the FinMoney type.
 
-use finmoney::{FinMoney, FinMoneyCurrency, MoneyError, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 #[test]
@@ -23,7 +23,7 @@ fn test_fin_money_zero() {
 }
 
 #[test]
-fn test_fin_money_arithmetic() -> Result<(), MoneyError> {
+fn test_fin_money_arithmetic() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
@@ -42,7 +42,7 @@ fn test_fin_money_arithmetic() -> Result<(), MoneyError> {
 
     // Division
     let quotient =
-        fin_money1.divided_by_decimal(dec!(2), MoneyRoundingStrategy::MidpointNearestEven)?;
+        fin_money1.divided_by_decimal(dec!(2), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     assert_eq!(quotient.get_amount(), dec!(5.25));
 
     Ok(())
@@ -56,7 +56,7 @@ fn test_currency_mismatch() {
     let eur_fin_money = FinMoney::new(dec!(10), eur);
 
     let result = usd_fin_money + eur_fin_money;
-    assert!(matches!(result, Err(MoneyError::CurrencyMismatch { .. })));
+    assert!(matches!(result, Err(FinMoneyError::CurrencyMismatch { .. })));
 }
 
 #[test]
@@ -64,12 +64,12 @@ fn test_division_by_zero() {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10), usd);
 
-    let result = fin_money.divided_by_decimal(dec!(0), MoneyRoundingStrategy::MidpointNearestEven);
-    assert!(matches!(result, Err(MoneyError::DivisionByZero)));
+    let result = fin_money.divided_by_decimal(dec!(0), FinMoneyRoundingStrategy::MidpointNearestEven);
+    assert!(matches!(result, Err(FinMoneyError::DivisionByZero)));
 }
 
 #[test]
-fn test_comparisons() -> Result<(), MoneyError> {
+fn test_comparisons() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
@@ -133,7 +133,7 @@ fn test_mathematical_operations() {
 }
 
 #[test]
-fn test_percentage_calculations() -> Result<(), MoneyError> {
+fn test_percentage_calculations() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let initial = FinMoney::new(dec!(100), usd);
     let current = FinMoney::new(dec!(110), usd);
@@ -156,13 +156,13 @@ fn test_rounding() {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.555), usd);
 
-    let rounded_even = fin_money.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointNearestEven);
+    let rounded_even = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointNearestEven);
     assert_eq!(rounded_even.get_amount(), dec!(10.56));
 
-    let rounded_away = fin_money.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointAwayFromZero);
+    let rounded_away = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointAwayFromZero);
     assert_eq!(rounded_away.get_amount(), dec!(10.56));
 
-    let rounded_toward = fin_money.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointTowardZero);
+    let rounded_toward = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointTowardZero);
     assert_eq!(rounded_toward.get_amount(), dec!(10.55));
 }
 
@@ -180,14 +180,14 @@ fn test_precision_with_creation() {
     let fin_money = FinMoney::new_with_precision(
         dec!(10.567),
         usd,
-        MoneyRoundingStrategy::MidpointNearestEven,
+        FinMoneyRoundingStrategy::MidpointNearestEven,
     );
 
     assert_eq!(fin_money.get_amount(), dec!(10.57));
 }
 
 #[test]
-fn test_rescale() -> Result<(), MoneyError> {
+fn test_rescale() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD; // 2 decimal places
     let fin_money = FinMoney::new(dec!(10.567), usd);
 

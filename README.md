@@ -35,16 +35,16 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "1.0.3"
+finmoney = "1.0.4"
 
 # For serialization support
-finmoney = { version = "1.0.3", features = ["serde"] }
+finmoney = { version = "1.0.4", features = ["serde"] }
 ```
 
 ## Basic Usage
 
 ```rust
-use finmoney::{FinMoney, FinMoneyCurrency, MoneyRoundingStrategy};
+use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 // Create currencies
@@ -68,7 +68,7 @@ let doubled = price * dec!(2);
 println!("{}", doubled); // 21.00 USD
 
 // Division with rounding
-let divided = price.divided_by_decimal(dec!(3), MoneyRoundingStrategy::MidpointNearestEven)?;
+let divided = price.divided_by_decimal(dec!(3), FinMoneyRoundingStrategy::MidpointNearestEven)?;
 println!("{}", divided); // 3.50 USD
 ```
 
@@ -136,13 +136,13 @@ Multiple rounding strategies are available:
 let amount = FinMoney::new(dec!(10.555), FinMoneyCurrency::USD);
 
 // Banker's rounding (default)
-let rounded1 = amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointNearestEven);
+let rounded1 = amount.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointNearestEven);
 
 // Always round away from zero
-let rounded2 = amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointAwayFromZero);
+let rounded2 = amount.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointAwayFromZero);
 
 // Always round toward zero
-let rounded3 = amount.round_dp_with_strategy(2, MoneyRoundingStrategy::MidpointTowardZero);
+let rounded3 = amount.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointTowardZero);
 ```
 
 ## Percentage Calculations
@@ -200,16 +200,16 @@ let ceil_money = money.ceil();      // -15.00 USD
 
 ## Error Handling
 
-All operations that can fail return `Result<T, MoneyError>`:
+All operations that can fail return `Result<T, FinMoneyError>`:
 
 ```rust
-use finmoney::MoneyError;
+use finmoney::FinMoneyError;
 
-let result = money1.divided_by_decimal(dec!(0), MoneyRoundingStrategy::default());
+let result = money1.divided_by_decimal(dec!(0), FinMoneyRoundingStrategy::default());
 match result {
     Ok(value) => println!("Result: {}", value),
-    Err(MoneyError::DivisionByZero) => println!("Cannot divide by zero"),
-    Err(MoneyError::CurrencyMismatch { expected, actual }) => {
+    Err(FinMoneyError::DivisionByZero) => println!("Cannot divide by zero"),
+    Err(FinMoneyError::CurrencyMismatch { expected, actual }) => {
         println!("Currency mismatch: expected {}, got {}", expected, actual);
     }
     Err(e) => println!("Other error: {}", e),
@@ -233,7 +233,7 @@ Enable the `serde` feature for serialization support:
 
 ```toml
 [dependencies]
-finmoney = { version = "1.0.3", features = ["serde"] }
+finmoney = { version = "1.0.4", features = ["serde"] }
 ```
 
 ```rust

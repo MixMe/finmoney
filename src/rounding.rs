@@ -6,7 +6,7 @@
 /// such as during division operations or when converting to tick sizes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum MoneyRoundingStrategy {
+pub enum FinMoneyRoundingStrategy {
     /// When a number is halfway between two others, it is rounded toward the nearest even number.
     /// Also known as "Bankers Rounding".
     ///
@@ -64,35 +64,35 @@ pub enum MoneyRoundingStrategy {
     ToPositiveInfinity,
 }
 
-impl MoneyRoundingStrategy {
+impl FinMoneyRoundingStrategy {
     /// Converts this rounding strategy to the corresponding `rust_decimal::RoundingStrategy`.
     #[inline]
     pub fn to_decimal_strategy(self) -> rust_decimal::RoundingStrategy {
         match self {
-            MoneyRoundingStrategy::MidpointNearestEven => {
+            FinMoneyRoundingStrategy::MidpointNearestEven => {
                 rust_decimal::RoundingStrategy::MidpointNearestEven
             }
-            MoneyRoundingStrategy::MidpointAwayFromZero => {
+            FinMoneyRoundingStrategy::MidpointAwayFromZero => {
                 rust_decimal::RoundingStrategy::MidpointAwayFromZero
             }
-            MoneyRoundingStrategy::MidpointTowardZero => {
+            FinMoneyRoundingStrategy::MidpointTowardZero => {
                 rust_decimal::RoundingStrategy::MidpointTowardZero
             }
-            MoneyRoundingStrategy::ToZero => rust_decimal::RoundingStrategy::ToZero,
-            MoneyRoundingStrategy::AwayFromZero => rust_decimal::RoundingStrategy::AwayFromZero,
-            MoneyRoundingStrategy::ToNegativeInfinity => {
+            FinMoneyRoundingStrategy::ToZero => rust_decimal::RoundingStrategy::ToZero,
+            FinMoneyRoundingStrategy::AwayFromZero => rust_decimal::RoundingStrategy::AwayFromZero,
+            FinMoneyRoundingStrategy::ToNegativeInfinity => {
                 rust_decimal::RoundingStrategy::ToNegativeInfinity
             }
-            MoneyRoundingStrategy::ToPositiveInfinity => {
+            FinMoneyRoundingStrategy::ToPositiveInfinity => {
                 rust_decimal::RoundingStrategy::ToPositiveInfinity
             }
         }
     }
 }
 
-impl Default for MoneyRoundingStrategy {
+impl Default for FinMoneyRoundingStrategy {
     /// Returns the default rounding strategy: `MidpointNearestEven` (Banker's rounding).
     fn default() -> Self {
-        MoneyRoundingStrategy::MidpointNearestEven
+        FinMoneyRoundingStrategy::MidpointNearestEven
     }
 }
