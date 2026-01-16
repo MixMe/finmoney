@@ -56,7 +56,10 @@ fn test_currency_mismatch() {
     let eur_fin_money = FinMoney::new(dec!(10), eur);
 
     let result = usd_fin_money + eur_fin_money;
-    assert!(matches!(result, Err(FinMoneyError::CurrencyMismatch { .. })));
+    assert!(matches!(
+        result,
+        Err(FinMoneyError::CurrencyMismatch { .. })
+    ));
 }
 
 #[test]
@@ -64,7 +67,8 @@ fn test_division_by_zero() {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10), usd);
 
-    let result = fin_money.divided_by_decimal(dec!(0), FinMoneyRoundingStrategy::MidpointNearestEven);
+    let result =
+        fin_money.divided_by_decimal(dec!(0), FinMoneyRoundingStrategy::MidpointNearestEven);
     assert!(matches!(result, Err(FinMoneyError::DivisionByZero)));
 }
 
@@ -156,13 +160,16 @@ fn test_rounding() {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.555), usd);
 
-    let rounded_even = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointNearestEven);
+    let rounded_even =
+        fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointNearestEven);
     assert_eq!(rounded_even.get_amount(), dec!(10.56));
 
-    let rounded_away = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointAwayFromZero);
+    let rounded_away =
+        fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointAwayFromZero);
     assert_eq!(rounded_away.get_amount(), dec!(10.56));
 
-    let rounded_toward = fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointTowardZero);
+    let rounded_toward =
+        fin_money.round_dp_with_strategy(2, FinMoneyRoundingStrategy::MidpointTowardZero);
     assert_eq!(rounded_toward.get_amount(), dec!(10.55));
 }
 

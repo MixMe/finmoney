@@ -30,7 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let doubled = price * dec!(2);
     println!("Price * 2 = {}", doubled);
 
-    let divided = price.divided_by_decimal(dec!(3), FinMoneyRoundingStrategy::MidpointNearestEven)?;
+    let divided =
+        price.divided_by_decimal(dec!(3), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     println!("Price / 3 = {}", divided);
     println!();
 

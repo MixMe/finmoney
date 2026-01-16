@@ -127,13 +127,16 @@ fn test_tick_rounding_strategies() -> Result<(), FinMoneyError> {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.625), usd); // Exactly between 10.50 and 10.75
 
-    let rounded_even = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointNearestEven)?;
+    let rounded_even =
+        fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointNearestEven)?;
     assert_eq!(rounded_even.get_amount(), dec!(10.50)); // Even multiple of 0.25
 
-    let rounded_away = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointAwayFromZero)?;
+    let rounded_away =
+        fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointAwayFromZero)?;
     assert_eq!(rounded_away.get_amount(), dec!(10.75));
 
-    let rounded_toward = fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointTowardZero)?;
+    let rounded_toward =
+        fin_money.to_tick(dec!(0.25), FinMoneyRoundingStrategy::MidpointTowardZero)?;
     assert_eq!(rounded_toward.get_amount(), dec!(10.50));
 
     Ok(())

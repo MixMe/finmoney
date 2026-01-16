@@ -33,12 +33,10 @@ impl Default for FinMoneyCurrency {
 
 impl FinMoneyCurrency {
     // Common internal codes to avoid repeated parsing/allocations.
-    const UNDEFINED_CODE: TinyAsciiStr<16> = unsafe {
-        TinyAsciiStr::from_utf8_unchecked(*b"UNDEFINED\0\0\0\0\0\0\0")
-    };
-    const INVALID_CODE: TinyAsciiStr<16> = unsafe {
-        TinyAsciiStr::from_utf8_unchecked(*b"INVALID\0\0\0\0\0\0\0\0\0")
-    };
+    const UNDEFINED_CODE: TinyAsciiStr<16> =
+        unsafe { TinyAsciiStr::from_utf8_unchecked(*b"UNDEFINED\0\0\0\0\0\0\0") };
+    const INVALID_CODE: TinyAsciiStr<16> =
+        unsafe { TinyAsciiStr::from_utf8_unchecked(*b"INVALID\0\0\0\0\0\0\0\0\0") };
 
     /// Creates a new currency with the specified parameters.
     ///

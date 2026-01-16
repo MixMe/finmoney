@@ -173,7 +173,7 @@ fn test_currency_new_from_tiny_invalid_precision() {
 
     let code: TinyAsciiStr<16> = "USD".parse().unwrap();
     let result = FinMoneyCurrency::new_from_tiny(1, code, None, 29);
-    
+
     assert!(matches!(result, Err(FinMoneyError::InvalidPrecision(29))));
 }
 

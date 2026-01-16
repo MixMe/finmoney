@@ -41,8 +41,12 @@ impl fmt::Display for FinMoneyError {
                 write!(f, "Invalid precision: {} (must be <= 28)", p)
             }
             FinMoneyError::InvalidTick => write!(f, "Invalid tick size (must be positive)"),
-            FinMoneyError::InvalidCurrencyCode(code) => write!(f, "Invalid currency code: {}", code),
-            FinMoneyError::InvalidCurrencyName(name) => write!(f, "Invalid currency name: {}", name),
+            FinMoneyError::InvalidCurrencyCode(code) => {
+                write!(f, "Invalid currency code: {}", code)
+            }
+            FinMoneyError::InvalidCurrencyName(name) => {
+                write!(f, "Invalid currency name: {}", name)
+            }
             FinMoneyError::ArithmeticOverflow => write!(f, "Arithmetic overflow occurred"),
             FinMoneyError::InvalidAmount(msg) => write!(f, "Invalid amount: {}", msg),
         }

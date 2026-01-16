@@ -35,10 +35,10 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "1.0.4"
+finmoney = "1.0.5"
 
 # For serialization support
-finmoney = { version = "1.0.4", features = ["serde"] }
+finmoney = { version = "1.0.5", features = ["serde"] }
 ```
 
 ## Basic Usage
@@ -233,7 +233,7 @@ Enable the `serde` feature for serialization support:
 
 ```toml
 [dependencies]
-finmoney = { version = "1.0.4", features = ["serde"] }
+finmoney = { version = "1.0.5", features = ["serde"] }
 ```
 
 ```rust

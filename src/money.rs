@@ -496,7 +496,10 @@ impl FinMoney {
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
     /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
-    pub fn negative_percent_change_from(&self, initial: FinMoney) -> Result<Decimal, FinMoneyError> {
+    pub fn negative_percent_change_from(
+        &self,
+        initial: FinMoney,
+    ) -> Result<Decimal, FinMoneyError> {
         self.assert_same_currency(initial)?;
 
         if initial.amount.is_zero() {
@@ -513,7 +516,10 @@ impl FinMoney {
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if currencies don't match.
     /// Returns `FinMoneyError::DivisionByZero` if initial amount is zero.
-    pub fn percent_change(initial: FinMoney, new_value: FinMoney) -> Result<Decimal, FinMoneyError> {
+    pub fn percent_change(
+        initial: FinMoney,
+        new_value: FinMoney,
+    ) -> Result<Decimal, FinMoneyError> {
         new_value.percent_change_from(initial)
     }
 
