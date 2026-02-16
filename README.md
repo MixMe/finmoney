@@ -35,10 +35,10 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "1.0.5"
+finmoney = "2.0.1"
 
 # For serialization support
-finmoney = { version = "1.0.5", features = ["serde"] }
+finmoney = { version = "2.0.1", features = ["serde"] }
 ```
 
 ## Basic Usage
@@ -48,8 +48,8 @@ use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
 // Create currencies
-let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
-let btc = FinMoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
+let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
+let btc = FinMoneyCurrency::new(2, "BTC", Some("Bitcoin"), 8)?;
 
 // Or use predefined currencies
 let usd = FinMoneyCurrency::USD;
@@ -63,8 +63,9 @@ let tax = FinMoney::new(dec!(1.05), usd);
 let total = (price + tax)?;
 println!("{}", total); // 11.55 USD
 
-// Multiply by decimal
+// Multiply by decimal (both directions work)
 let doubled = price * dec!(2);
+let also_doubled = dec!(2) * price;
 println!("{}", doubled); // 21.00 USD
 
 // Division with rounding
@@ -193,7 +194,7 @@ println!("Is integer: {}", money.is_integer());
 
 // Mathematical operations
 let abs_money = money.abs();        // 15.75 USD
-let neg_money = money.negated();    // 15.75 USD
+let neg_money = -money;             // 15.75 USD
 let floor_money = money.floor();    // -16.00 USD
 let ceil_money = money.ceil();      // -15.00 USD
 ```
@@ -233,10 +234,8 @@ Enable the `serde` feature for serialization support:
 
 ```toml
 [dependencies]
-finmoney = { version = "1.0.5", features = ["serde"] }
+finmoney = { version = "2.0.1", features = ["serde"] }
 ```
-
-```rust
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]

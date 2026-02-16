@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.0.1] - 2025-02-16
+
+### Fixed
+- Updated README examples to reflect 2.0.0 API changes (removed `.to_string()` boilerplate, added `Neg` operator and reverse `Mul` examples)
+- Updated version references in README
+
 ## [2.0.0] - 2025-02-16
 
 ### Breaking Changes
