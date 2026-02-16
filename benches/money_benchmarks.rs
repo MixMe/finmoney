@@ -131,8 +131,8 @@ fn benchmark_currency_operations(c: &mut Criterion) {
         b.iter(|| {
             FinMoneyCurrency::new(
                 black_box(1),
-                black_box("USD".to_string()),
-                black_box(Some("US Dollar".to_string())),
+                black_box("USD"),
+                black_box(Some("US Dollar")),
                 black_box(2),
             )
             .unwrap()

@@ -7,8 +7,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== finmoney Basic Usage Examples ===\n");
 
     // Create currencies
-    let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
-    let eur = FinMoneyCurrency::new(2, "EUR".to_string(), Some("Euro".to_string()), 2)?;
+    let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
+    let eur = FinMoneyCurrency::new(2, "EUR", Some("Euro"), 2)?;
 
     // Or use predefined currencies
     let btc = FinMoneyCurrency::BTC;

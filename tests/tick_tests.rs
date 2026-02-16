@@ -74,19 +74,6 @@ fn test_tick_power_of_ten() -> Result<(), FinMoneyError> {
 }
 
 #[test]
-fn test_tick_power10_dp_helper() {
-    assert_eq!(FinMoney::tick_power10_dp(dec!(0.001)), Some(3));
-    assert_eq!(FinMoney::tick_power10_dp(dec!(0.01)), Some(2));
-    assert_eq!(FinMoney::tick_power10_dp(dec!(0.1)), Some(1));
-    assert_eq!(FinMoney::tick_power10_dp(dec!(1)), Some(0));
-
-    // Non-power-of-ten ticks
-    assert_eq!(FinMoney::tick_power10_dp(dec!(0.25)), None);
-    assert_eq!(FinMoney::tick_power10_dp(dec!(0.33)), None);
-    assert_eq!(FinMoney::tick_power10_dp(dec!(5)), None);
-}
-
-#[test]
 fn test_tick_invalid() {
     let usd = FinMoneyCurrency::USD;
     let fin_money = FinMoney::new(dec!(10.50), usd);

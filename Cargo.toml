@@ -1,8 +1,8 @@
 [package]
 name = "finmoney"
-version = "1.0.5"
+version = "2.0.0"
 edition = "2024"
-authors = ["Your Name <mixme2@gmail.com>"]
+authors = ["Muntean Maxim <mixme2@gmail.com>"]
 description = "A precise, panic-free money library for Rust with currency-aware values, configurable rounding, and exchange-grade tick handling"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/MixMe/finmoney"
@@ -22,7 +22,7 @@ include = [
     "LICENSE-APACHE",
     "CHANGELOG.md"
 ]
-rust-version = "1.85"
+rust-version = "1.90"
 
 [profile.release]
 codegen-units = 1
@@ -43,7 +43,7 @@ serde = { version = "1.0.228", features = ["derive"], optional = true }
 
 
 [dev-dependencies]
-criterion = "0.8.1"
+criterion = "0.8.2"
 
 [features]
 default = []

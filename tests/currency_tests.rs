@@ -4,7 +4,7 @@ use finmoney::{FinMoneyCurrency, FinMoneyError};
 
 #[test]
 fn test_currency_creation() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
+    let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
 
     assert_eq!(usd.get_id(), 1);
     assert_eq!(usd.get_code(), "USD");
@@ -16,7 +16,7 @@ fn test_currency_creation() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_currency_creation_without_name() -> Result<(), FinMoneyError> {
-    let btc = FinMoneyCurrency::new(2, "BTC".to_string(), None, 8)?;
+    let btc = FinMoneyCurrency::new(2, "BTC", None::<String>, 8)?;
 
     assert_eq!(btc.get_id(), 2);
     assert_eq!(btc.get_code(), "BTC");
@@ -28,7 +28,7 @@ fn test_currency_creation_without_name() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_currency_invalid_precision() {
-    let result = FinMoneyCurrency::new(1, "USD".to_string(), None, 29);
+    let result = FinMoneyCurrency::new(1, "USD", None::<String>, 29);
     assert!(matches!(result, Err(FinMoneyError::InvalidPrecision(29))));
 }
 

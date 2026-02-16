@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [2.0.0] - 2025-02-16
+
+### Breaking Changes
+- Removed `AddAssign` and `SubAssign` operator implementations (they panicked on currency mismatch, violating the panic-free guarantee)
+- Removed `compare_to()` method (use `compare()` instead)
+- Removed `is_amount_and_currency_equal_to()` method (use `is_equal_to()` instead)
+- `sqrt()` now returns `Result<FinMoney, FinMoneyError>` instead of panicking on negative input
+- `tick_power10_dp()` is now private (was an internal helper exposed unnecessarily)
+- `FinMoneyCurrency::new()` name parameter changed from `Option<String>` to `Option<impl Into<String>>`
+
+### Added
+- `Eq` derive on `FinMoney`
+- `Neg` operator implementation (`-money` instead of `money.negated()`)
+- `Mul<FinMoney> for Decimal` (reverse multiplication: `dec!(2) * money`)
+- `#[inline]` on all hot-path methods across `FinMoney` and `FinMoneyCurrency`
+
+### Changed
+- `FinMoneyCurrency::new()` now accepts `impl Into<String>` for both `code` and `name` parameters, eliminating `.to_string()` boilerplate at call sites
+- Updated criterion dev-dependency from 0.8.1 to 0.8.2
+
 ## [1.0.5] - 2024-12-31
 
 ### Changed

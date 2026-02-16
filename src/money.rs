@@ -5,7 +5,7 @@ use rust_decimal::{Decimal, MathematicalOps};
 use rust_decimal_macros::dec;
 use std::cmp::Ordering;
 use std::fmt;
-use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
+use std::ops::{Add, Mul, Neg, Sub};
 
 /// Represents a monetary value with an amount and associated currency.
 ///
@@ -18,7 +18,7 @@ use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
 /// use rust_decimal_macros::dec;
 ///
-/// let usd = FinMoneyCurrency::new(1, "USD".to_string(), None, 2)?;
+/// let usd = FinMoneyCurrency::new(1, "USD", None::<String>, 2)?;
 /// let price = FinMoney::new(dec!(10.50), usd);
 /// let tax = FinMoney::new(dec!(1.05), usd);
 /// let total = (price + tax)?;
@@ -26,7 +26,7 @@ use std::ops::{Add, AddAssign, Mul, Sub, SubAssign};
 /// assert_eq!(total.get_amount(), dec!(11.55));
 /// # Ok::<(), FinMoneyError>(())
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FinMoney {
     amount: Decimal,
@@ -79,6 +79,7 @@ impl FinMoney {
     /// let FinMoney = FinMoney::new(dec!(42.50), usd);
     /// assert_eq!(FinMoney.get_amount(), dec!(42.50));
     /// ```
+    #[inline]
     pub fn new(amount: Decimal, currency: FinMoneyCurrency) -> Self {
         Self { amount, currency }
     }
@@ -126,6 +127,7 @@ impl FinMoney {
     /// assert_eq!(zero.get_amount(), dec!(0));
     /// assert!(zero.is_zero());
     /// ```
+    #[inline]
     pub fn zero(currency: FinMoneyCurrency) -> Self {
         Self {
             amount: Decimal::ZERO,
@@ -148,6 +150,7 @@ impl FinMoney {
     }
 
     /// Returns the currency identifier.
+    #[inline]
     pub fn get_currency_id(&self) -> i32 {
         self.currency.get_id()
     }
@@ -177,6 +180,7 @@ impl FinMoney {
     }
 
     /// Adds a `Decimal` amount to this `FinMoney`.
+    #[inline]
     pub fn plus_decimal(&self, d: Decimal) -> FinMoney {
         FinMoney::new(self.amount + d, self.currency)
     }
@@ -192,6 +196,7 @@ impl FinMoney {
     }
 
     /// Subtracts a `Decimal` amount from this `FinMoney`.
+    #[inline]
     pub fn minus_decimal(&self, d: Decimal) -> FinMoney {
         FinMoney::new(self.amount - d, self.currency)
     }
@@ -207,6 +212,7 @@ impl FinMoney {
     }
 
     /// Multiplies this `FinMoney` by a `Decimal`.
+    #[inline]
     pub fn multiplied_by_decimal(&self, d: Decimal) -> FinMoney {
         FinMoney::new(self.amount * d, self.currency)
     }
@@ -257,15 +263,6 @@ impl FinMoney {
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
     pub fn compare(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
-        self.compare_to(other)
-    }
-
-    /// Compares this `FinMoney` with another, ensuring the same currency.
-    ///
-    /// # Errors
-    ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn compare_to(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount.cmp(&other.amount))
     }
@@ -306,11 +303,6 @@ impl FinMoney {
     /// Checks if this `FinMoney` is equal to another in both amount and currency.
     pub fn is_equal_to(&self, other: FinMoney) -> bool {
         self.currency.is_same_currency(&other.currency) && self.amount == other.amount
-    }
-
-    /// Checks if this `FinMoney` is equal to another in amount and currency.
-    pub fn is_amount_and_currency_equal_to(&self, other: FinMoney) -> bool {
-        self.is_equal_to(other)
     }
 
     /// Checks if this `FinMoney` is less than another, ensuring the same currency.
@@ -393,16 +385,19 @@ impl FinMoney {
     }
 
     /// Returns the largest integer less than or equal to this `FinMoney`.
+    #[inline]
     pub fn floor(&self) -> FinMoney {
         FinMoney::new(self.amount.floor(), self.currency)
     }
 
     /// Returns the smallest integer greater than or equal to this `FinMoney`.
+    #[inline]
     pub fn ceil(&self) -> FinMoney {
         FinMoney::new(self.amount.ceil(), self.currency)
     }
 
     /// Returns the integer part of this `FinMoney`, removing the fractional part.
+    #[inline]
     pub fn trunc(&self) -> FinMoney {
         FinMoney::new(self.amount.trunc(), self.currency)
     }
@@ -410,36 +405,43 @@ impl FinMoney {
     // -- Properties and Checks --
 
     /// Checks if the amount is an integer (no fractional part).
+    #[inline]
     pub fn is_integer(&self) -> bool {
         self.amount.fract().is_zero()
     }
 
     /// Checks if the amount has a fractional part.
+    #[inline]
     pub fn has_fraction(&self) -> bool {
         !self.amount.fract().is_zero()
     }
 
     /// Checks if the amount is zero.
+    #[inline]
     pub fn is_zero(&self) -> bool {
         self.amount.is_zero()
     }
 
     /// Checks if the amount is positive (greater than zero).
+    #[inline]
     pub fn is_positive(&self) -> bool {
         self.amount.is_sign_positive() && !self.amount.is_zero()
     }
 
     /// Checks if the amount is negative (less than zero).
+    #[inline]
     pub fn is_negative(&self) -> bool {
         self.amount.is_sign_negative() && !self.amount.is_zero()
     }
 
     /// Checks if the amount is positive or zero.
+    #[inline]
     pub fn is_positive_or_zero(&self) -> bool {
         self.amount.is_sign_positive()
     }
 
     /// Checks if the amount is negative or zero.
+    #[inline]
     pub fn is_negative_or_zero(&self) -> bool {
         self.amount.is_sign_negative() || self.amount.is_zero()
     }
@@ -448,24 +450,33 @@ impl FinMoney {
 
     /// Returns the square root of the amount.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Panics if the amount is negative (square root of negative number).
-    pub fn sqrt(&self) -> FinMoney {
-        FinMoney::new(self.amount.sqrt().unwrap(), self.currency)
+    /// Returns `FinMoneyError::InvalidAmount` if the amount is negative.
+    #[inline]
+    pub fn sqrt(&self) -> Result<FinMoney, FinMoneyError> {
+        match self.amount.sqrt() {
+            Some(result) => Ok(FinMoney::new(result, self.currency)),
+            None => Err(FinMoneyError::InvalidAmount(
+                "cannot take square root of negative number".to_string(),
+            )),
+        }
     }
 
     /// Returns the absolute value of the amount.
+    #[inline]
     pub fn abs(&self) -> FinMoney {
         FinMoney::new(self.amount.abs(), self.currency)
     }
 
     /// Returns the negated value of the amount.
+    #[inline]
     pub fn negated(&self) -> FinMoney {
         FinMoney::new(-self.amount, self.currency)
     }
 
     /// Returns a normalized version of the amount.
+    #[inline]
     pub fn normalize(&self) -> FinMoney {
         FinMoney::new(self.amount.normalize(), self.currency)
     }
@@ -661,7 +672,7 @@ impl FinMoney {
 
     /// Helper function: if tick == 10^-dp (e.g., 0.001 → dp=3), return dp.
     #[inline]
-    pub fn tick_power10_dp(tick: Decimal) -> Option<u32> {
+    fn tick_power10_dp(tick: Decimal) -> Option<u32> {
         // If tick is exactly 10^-dp, then its scale is dp and its coefficient is 1.
         // This avoids powi/multiply allocations and is significantly cheaper.
         let dp = tick.scale();
@@ -699,19 +710,19 @@ impl Mul<Decimal> for FinMoney {
     }
 }
 
-impl AddAssign for FinMoney {
-    fn add_assign(&mut self, rhs: Self) {
-        *self = self
-            .plus_money(rhs)
-            .expect("Currency mismatch in AddAssign");
+impl Mul<FinMoney> for Decimal {
+    type Output = FinMoney;
+
+    fn mul(self, rhs: FinMoney) -> Self::Output {
+        rhs.multiplied_by_decimal(self)
     }
 }
 
-impl SubAssign for FinMoney {
-    fn sub_assign(&mut self, rhs: Self) {
-        *self = self
-            .minus_money(rhs)
-            .expect("Currency mismatch in SubAssign");
+impl Neg for FinMoney {
+    type Output = FinMoney;
+
+    fn neg(self) -> Self::Output {
+        self.negated()
     }
 }
 

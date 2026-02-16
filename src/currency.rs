@@ -58,14 +58,14 @@ impl FinMoneyCurrency {
     /// ```rust
     /// use finmoney::FinMoneyCurrency;
     ///
-    /// let usd = FinMoneyCurrency::new(1, "USD".to_string(), Some("US Dollar".to_string()), 2)?;
-    /// let btc = FinMoneyCurrency::new(2, "BTC".to_string(), Some("Bitcoin".to_string()), 8)?;
+    /// let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
+    /// let btc = FinMoneyCurrency::new(2, "BTC", Some("Bitcoin"), 8)?;
     /// # Ok::<(), finmoney::FinMoneyError>(())
     /// ```
     pub fn new(
         id: i32,
         code: impl Into<String>,
-        name: Option<String>,
+        name: Option<impl Into<String>>,
         precision: u8,
     ) -> Result<FinMoneyCurrency> {
         if precision > 28 {
@@ -73,10 +73,13 @@ impl FinMoneyCurrency {
         }
         let code = code.into();
         let parsed_name = match name {
-            Some(n) => match Self::sanitize_and_parse_name(&n) {
-                Ok(ascii_name) => Some(ascii_name),
-                Err(_) => return Err(FinMoneyError::InvalidCurrencyName(n)),
-            },
+            Some(n) => {
+                let n = n.into();
+                match Self::sanitize_and_parse_name(&n) {
+                    Ok(ascii_name) => Some(ascii_name),
+                    Err(_) => return Err(FinMoneyError::InvalidCurrencyName(n)),
+                }
+            }
             None => None,
         };
 
@@ -170,21 +173,25 @@ impl FinMoneyCurrency {
     }
 
     /// Returns the unique identifier of this currency.
+    #[inline]
     pub fn get_id(&self) -> i32 {
         self.id
     }
 
     /// Returns the human-readable name of this currency, if available.
+    #[inline]
     pub fn get_name(&self) -> Option<&str> {
         self.name.as_ref().map(|s| s.as_str())
     }
 
     /// Returns the currency code (e.g., "USD", "EUR").
+    #[inline]
     pub fn get_code(&self) -> &str {
         self.code.as_str()
     }
 
     /// Returns the precision (number of decimal places) for this currency.
+    #[inline]
     pub fn get_precision(&self) -> u8 {
         self.precision
     }
@@ -208,6 +215,7 @@ impl FinMoneyCurrency {
     }
 
     /// Checks if this currency has the same ID as another currency.
+    #[inline]
     pub fn is_same_currency(&self, other: &FinMoneyCurrency) -> bool {
         self.id == other.id
     }
