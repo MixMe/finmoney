@@ -1,7 +1,8 @@
 //! Currency representation and management.
 
 use crate::error::{FinMoneyError, Result};
-use tinystr::TinyAsciiStr;
+use std::fmt;
+use tinystr::{TinyAsciiStr, tinystr};
 
 /// Represents a currency with an identifier, optional name, code, and precision.
 ///
@@ -33,10 +34,8 @@ impl Default for FinMoneyCurrency {
 
 impl FinMoneyCurrency {
     // Common internal codes to avoid repeated parsing/allocations.
-    const UNDEFINED_CODE: TinyAsciiStr<16> =
-        unsafe { TinyAsciiStr::from_utf8_unchecked(*b"UNDEFINED\0\0\0\0\0\0\0") };
-    const INVALID_CODE: TinyAsciiStr<16> =
-        unsafe { TinyAsciiStr::from_utf8_unchecked(*b"INVALID\0\0\0\0\0\0\0\0\0") };
+    const UNDEFINED_CODE: TinyAsciiStr<16> = tinystr!(16, "UNDEFINED");
+    const INVALID_CODE: TinyAsciiStr<16> = tinystr!(16, "INVALID");
 
     /// Creates a new currency with the specified parameters.
     ///
@@ -265,8 +264,8 @@ impl FinMoneyCurrency {
     /// US Dollar with 2 decimal places precision.
     pub const USD: FinMoneyCurrency = FinMoneyCurrency {
         id: 1,
-        name: None, // TinyAsciiStr doesn't support const construction with Some
-        code: unsafe { TinyAsciiStr::from_utf8_unchecked(*b"USD\0\0\0\0\0\0\0\0\0\0\0\0\0") },
+        name: None,
+        code: tinystr!(16, "USD"),
         precision: 2,
     };
 
@@ -274,7 +273,7 @@ impl FinMoneyCurrency {
     pub const EUR: FinMoneyCurrency = FinMoneyCurrency {
         id: 2,
         name: None,
-        code: unsafe { TinyAsciiStr::from_utf8_unchecked(*b"EUR\0\0\0\0\0\0\0\0\0\0\0\0\0") },
+        code: tinystr!(16, "EUR"),
         precision: 2,
     };
 
@@ -282,7 +281,7 @@ impl FinMoneyCurrency {
     pub const BTC: FinMoneyCurrency = FinMoneyCurrency {
         id: 3,
         name: None,
-        code: unsafe { TinyAsciiStr::from_utf8_unchecked(*b"BTC\0\0\0\0\0\0\0\0\0\0\0\0\0") },
+        code: tinystr!(16, "BTC"),
         precision: 8,
     };
 
@@ -290,7 +289,119 @@ impl FinMoneyCurrency {
     pub const ETH: FinMoneyCurrency = FinMoneyCurrency {
         id: 4,
         name: None,
-        code: unsafe { TinyAsciiStr::from_utf8_unchecked(*b"ETH\0\0\0\0\0\0\0\0\0\0\0\0\0") },
+        code: tinystr!(16, "ETH"),
         precision: 18,
     };
+
+    /// British Pound with 2 decimal places precision.
+    pub const GBP: FinMoneyCurrency = FinMoneyCurrency {
+        id: 5,
+        name: None,
+        code: tinystr!(16, "GBP"),
+        precision: 2,
+    };
+
+    /// Japanese Yen with 0 decimal places precision.
+    pub const JPY: FinMoneyCurrency = FinMoneyCurrency {
+        id: 6,
+        name: None,
+        code: tinystr!(16, "JPY"),
+        precision: 0,
+    };
+
+    /// Swiss Franc with 2 decimal places precision.
+    pub const CHF: FinMoneyCurrency = FinMoneyCurrency {
+        id: 7,
+        name: None,
+        code: tinystr!(16, "CHF"),
+        precision: 2,
+    };
+
+    /// Chinese Yuan with 2 decimal places precision.
+    pub const CNY: FinMoneyCurrency = FinMoneyCurrency {
+        id: 8,
+        name: None,
+        code: tinystr!(16, "CNY"),
+        precision: 2,
+    };
+
+    /// Russian Ruble with 2 decimal places precision.
+    pub const RUB: FinMoneyCurrency = FinMoneyCurrency {
+        id: 9,
+        name: None,
+        code: tinystr!(16, "RUB"),
+        precision: 2,
+    };
+
+    /// Tether with 6 decimal places precision.
+    pub const USDT: FinMoneyCurrency = FinMoneyCurrency {
+        id: 10,
+        name: None,
+        code: tinystr!(16, "USDT"),
+        precision: 6,
+    };
+
+    /// Solana with 9 decimal places precision.
+    pub const SOL: FinMoneyCurrency = FinMoneyCurrency {
+        id: 11,
+        name: None,
+        code: tinystr!(16, "SOL"),
+        precision: 9,
+    };
+
+    /// Returns a static slice of all predefined currencies.
+    ///
+    /// The list includes: USD, EUR, BTC, ETH, GBP, JPY, CHF, CNY, RUB, USDT, SOL.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::FinMoneyCurrency;
+    ///
+    /// let currencies = FinMoneyCurrency::all_predefined();
+    /// assert_eq!(currencies.len(), 11);
+    /// assert_eq!(currencies[0], FinMoneyCurrency::USD);
+    /// ```
+    pub fn all_predefined() -> &'static [FinMoneyCurrency] {
+        static ALL: [FinMoneyCurrency; 11] = [
+            FinMoneyCurrency::USD,
+            FinMoneyCurrency::EUR,
+            FinMoneyCurrency::BTC,
+            FinMoneyCurrency::ETH,
+            FinMoneyCurrency::GBP,
+            FinMoneyCurrency::JPY,
+            FinMoneyCurrency::CHF,
+            FinMoneyCurrency::CNY,
+            FinMoneyCurrency::RUB,
+            FinMoneyCurrency::USDT,
+            FinMoneyCurrency::SOL,
+        ];
+        &ALL
+    }
+}
+
+/// Displays the currency as `"CODE (Name)"` when a name is set,
+/// or just `"CODE"` otherwise.
+///
+/// # Examples
+///
+/// ```
+/// use finmoney::{FinMoneyCurrency, FinMoneyError};
+///
+/// // Predefined constant without a name
+/// let usd = FinMoneyCurrency::USD;
+/// assert_eq!(usd.to_string(), "USD");
+///
+/// // Custom currency with a name
+/// let custom = FinMoneyCurrency::new(99, "XYZ", Some("My Token"), 2)?;
+/// assert_eq!(custom.to_string(), "XYZ (My Token)");
+/// # Ok::<(), FinMoneyError>(())
+/// ```
+impl fmt::Display for FinMoneyCurrency {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.get_name() {
+            Some(name) => write!(f, "{} ({})", self.get_code(), name),
+            None => write!(f, "{}", self.get_code()),
+        }
+    }
 }

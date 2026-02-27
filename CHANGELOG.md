@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [3.0.0] - 2026-02-27
+
+### Breaking Changes
+- `plus_decimal()` and `minus_decimal()` now return `Result<FinMoney, FinMoneyError>` instead of `FinMoney` (overflow detection)
+- `multiplied_by_decimal()` now returns `Result<FinMoney, FinMoneyError>` instead of `FinMoney`
+- `Mul<Decimal> for FinMoney` output changed from `FinMoney` to `Result<FinMoney, FinMoneyError>`
+- `Mul<FinMoney> for Decimal` output changed from `FinMoney` to `Result<FinMoney, FinMoneyError>`
+- All arithmetic operations now use checked arithmetic (`checked_add`, `checked_sub`, `checked_mul`) and return `Err(ArithmeticOverflow)` on overflow instead of panicking
+
+### Added
+- 7 new predefined currencies: GBP (precision 2), JPY (precision 0), CHF (precision 2), CNY (precision 2), RUB (precision 2), USDT (precision 6), SOL (precision 9)
+- `FinMoneyCurrency::all_predefined()` — returns a static slice of all 11 predefined currencies
+- `Display` trait for `FinMoneyCurrency` — formats as `"CODE"` or `"CODE (Name)"`
+- `FinMoney::from_i64()` and `FinMoney::from_f64()` constructors
+- `TryFrom<(f64, FinMoneyCurrency)>` for `FinMoney`
+- `FinMoney::allocate()` — split money by weights with zero-loss remainder distribution
+- `FinMoney::convert_to()` — currency conversion at a given rate with rounding
+- `FinMoney::exchange_rate_to()` — compute implied exchange rate between two amounts
+- `std::iter::Sum` for `FinMoney`
+- `FinMoney::try_sum()` — safe, non-panicking alternative to `Sum`
+- `FinMoney::format_with_separator()` — locale-aware formatting with custom thousand/decimal separators
+- `FinMoney::format_padded()` — zero-padded decimal output
+- `FinMoneyError::is_currency_mismatch()`, `is_division_by_zero()`, `is_overflow()` predicate methods
+- Property-based tests via `proptest` (17 tests covering 14 correctness properties)
+- Serde round-trip tests (7 tests including property-based)
+- Extended unit tests for overflow, negative values, precision 0 (JPY), and precision 28
+
+### Changed
+- Eliminated all `unsafe` code in currency constants — replaced `TinyAsciiStr::from_utf8_unchecked` with `tinystr!()` macro
+- Expanded crate-level documentation in `lib.rs` with architecture overview and usage examples
+- Updated README with new feature sections, migration guide, and version 3.0.0 references
+
+### Dependencies
+- Added `proptest = "1.6"` (dev-dependency)
+- Added `serde_json = "1.0"` (dev-dependency)
+
 ## [2.0.1] - 2025-02-16
 
 ### Fixed

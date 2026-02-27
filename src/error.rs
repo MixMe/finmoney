@@ -55,5 +55,53 @@ impl fmt::Display for FinMoneyError {
 
 impl std::error::Error for FinMoneyError {}
 
+impl FinMoneyError {
+    /// Returns `true` if this error is a currency mismatch.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::FinMoneyError;
+    ///
+    /// let err = FinMoneyError::CurrencyMismatch {
+    ///     expected: "USD".into(),
+    ///     actual: "EUR".into(),
+    /// };
+    /// assert!(err.is_currency_mismatch());
+    /// assert!(!FinMoneyError::DivisionByZero.is_currency_mismatch());
+    /// ```
+    pub fn is_currency_mismatch(&self) -> bool {
+        matches!(self, FinMoneyError::CurrencyMismatch { .. })
+    }
+
+    /// Returns `true` if this error is a division by zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::FinMoneyError;
+    ///
+    /// assert!(FinMoneyError::DivisionByZero.is_division_by_zero());
+    /// assert!(!FinMoneyError::ArithmeticOverflow.is_division_by_zero());
+    /// ```
+    pub fn is_division_by_zero(&self) -> bool {
+        matches!(self, FinMoneyError::DivisionByZero)
+    }
+
+    /// Returns `true` if this error is an arithmetic overflow.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::FinMoneyError;
+    ///
+    /// assert!(FinMoneyError::ArithmeticOverflow.is_overflow());
+    /// assert!(!FinMoneyError::DivisionByZero.is_overflow());
+    /// ```
+    pub fn is_overflow(&self) -> bool {
+        matches!(self, FinMoneyError::ArithmeticOverflow)
+    }
+}
+
 /// Result type alias for operations that can fail with `FinMoneyError`.
 pub type Result<T> = std::result::Result<T, FinMoneyError>;

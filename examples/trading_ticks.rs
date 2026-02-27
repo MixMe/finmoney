@@ -121,14 +121,14 @@ fn simulate_crypto_trading() -> Result<(), Box<dyn std::error::Error>> {
     println!("BTC Quantity: {} -> {}", btc_quantity, rounded_quantity);
 
     // Calculate total value
-    let total_usd = rounded_btc_price.multiplied_by_decimal(rounded_quantity.get_amount());
+    let total_usd = rounded_btc_price.multiplied_by_decimal(rounded_quantity.get_amount())?;
     let final_total = total_usd.to_tick_nearest(dec!(0.01))?;
 
     println!("Total Value: {}", final_total);
 
     // Demonstrate different rounding strategies for fees
     let fee_rate = dec!(0.001); // 0.1% fee
-    let raw_fee = final_total.multiplied_by_decimal(fee_rate);
+    let raw_fee = final_total.multiplied_by_decimal(fee_rate)?;
 
     println!("\nFee Calculations:");
     println!("Raw fee: {}", raw_fee);

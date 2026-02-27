@@ -1,7 +1,7 @@
 //! Core FinMoney type and operations.
 
 use crate::{FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
-use rust_decimal::{Decimal, MathematicalOps};
+use rust_decimal::{Decimal, MathematicalOps, RoundingStrategy};
 use rust_decimal_macros::dec;
 use std::cmp::Ordering;
 use std::fmt;
@@ -135,6 +135,48 @@ impl FinMoney {
         }
     }
 
+    /// Creates a `FinMoney` from an `i64` value and a currency.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::from_i64(100, FinMoneyCurrency::USD);
+    /// assert_eq!(m.get_amount(), dec!(100));
+    /// assert_eq!(m.get_currency(), FinMoneyCurrency::USD);
+    /// ```
+    #[inline]
+    pub fn from_i64(value: i64, currency: FinMoneyCurrency) -> FinMoney {
+        FinMoney::new(Decimal::from(value), currency)
+    }
+
+    /// Creates a `FinMoney` from an `f64` value and a currency.
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(FinMoneyError::InvalidAmount)` if the value is NaN or infinite.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::from_f64(10.5, FinMoneyCurrency::USD)?;
+    /// assert_eq!(m.get_amount(), dec!(10.5));
+    ///
+    /// assert!(FinMoney::from_f64(f64::NAN, FinMoneyCurrency::USD).is_err());
+    /// assert!(FinMoney::from_f64(f64::INFINITY, FinMoneyCurrency::USD).is_err());
+    /// # Ok::<(), FinMoneyError>(())
+    /// ```
+    pub fn from_f64(value: f64, currency: FinMoneyCurrency) -> Result<FinMoney, FinMoneyError> {
+        Decimal::try_from(value)
+            .map(|d| FinMoney::new(d, currency))
+            .map_err(|_| FinMoneyError::InvalidAmount(format!("invalid f64: {}", value)))
+    }
+
     // -- Accessors (getters) --
 
     /// Returns the amount of FinMoney as a `Decimal`.
@@ -174,15 +216,26 @@ impl FinMoney {
     /// # Errors
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     pub fn plus_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
-        Ok(FinMoney::new(self.amount + other.amount, self.currency))
+        self.amount
+            .checked_add(other.amount)
+            .map(|sum| FinMoney::new(sum, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
     }
 
     /// Adds a `Decimal` amount to this `FinMoney`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     #[inline]
-    pub fn plus_decimal(&self, d: Decimal) -> FinMoney {
-        FinMoney::new(self.amount + d, self.currency)
+    pub fn plus_decimal(&self, d: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.amount
+            .checked_add(d)
+            .map(|sum| FinMoney::new(sum, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
     }
 
     /// Subtracts another `FinMoney` value from this one, ensuring the same currency.
@@ -190,15 +243,26 @@ impl FinMoney {
     /// # Errors
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     pub fn minus_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
-        Ok(FinMoney::new(self.amount - other.amount, self.currency))
+        self.amount
+            .checked_sub(other.amount)
+            .map(|diff| FinMoney::new(diff, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
     }
 
     /// Subtracts a `Decimal` amount from this `FinMoney`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     #[inline]
-    pub fn minus_decimal(&self, d: Decimal) -> FinMoney {
-        FinMoney::new(self.amount - d, self.currency)
+    pub fn minus_decimal(&self, d: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.amount
+            .checked_sub(d)
+            .map(|diff| FinMoney::new(diff, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
     }
 
     /// Multiplies this `FinMoney` by another `FinMoney`, ensuring the same currency.
@@ -206,15 +270,81 @@ impl FinMoney {
     /// # Errors
     ///
     /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     pub fn multiplied_by_money(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
         self.assert_same_currency(other)?;
-        Ok(FinMoney::new(self.amount * other.amount, self.currency))
+        self.amount
+            .checked_mul(other.amount)
+            .map(|product| FinMoney::new(product, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
     }
 
     /// Multiplies this `FinMoney` by a `Decimal`.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
     #[inline]
-    pub fn multiplied_by_decimal(&self, d: Decimal) -> FinMoney {
-        FinMoney::new(self.amount * d, self.currency)
+    pub fn multiplied_by_decimal(&self, d: Decimal) -> Result<FinMoney, FinMoneyError> {
+        self.amount
+            .checked_mul(d)
+            .map(|product| FinMoney::new(product, self.currency))
+            .ok_or(FinMoneyError::ArithmeticOverflow)
+    }
+
+    /// Splits this `FinMoney` proportionally according to the given weights.
+    ///
+    /// The algorithm rounds each part toward zero, then distributes the remainder
+    /// one minimum step at a time starting from the first part, guaranteeing that
+    /// the sum of all parts equals the original amount.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FinMoneyError::InvalidAmount` if all weights are zero.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoneyCurrency::USD;
+    /// let total = FinMoney::new(dec!(100.00), usd);
+    /// let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
+    /// assert_eq!(parts.len(), 3);
+    /// let sum: rust_decimal::Decimal = parts.iter().map(|p| p.get_amount()).sum();
+    /// assert_eq!(sum, dec!(100.00));
+    /// # Ok::<(), FinMoneyError>(())
+    /// ```
+    pub fn allocate(&self, weights: &[Decimal]) -> Result<Vec<FinMoney>, FinMoneyError> {
+        if weights.is_empty() {
+            return Ok(vec![]);
+        }
+        let total_weight: Decimal = weights.iter().copied().sum();
+        if total_weight.is_zero() {
+            return Err(FinMoneyError::InvalidAmount("all weights are zero".into()));
+        }
+        let precision = self.currency.get_precision() as u32;
+        let mut parts: Vec<Decimal> = weights
+            .iter()
+            .map(|w| {
+                (self.amount * *w / total_weight)
+                    .round_dp_with_strategy(precision, RoundingStrategy::ToZero)
+            })
+            .collect();
+        let allocated: Decimal = parts.iter().copied().sum();
+        let mut remainder = self.amount - allocated;
+        let step = Decimal::new(1, precision);
+        let mut i = 0;
+        while remainder > Decimal::ZERO && i < parts.len() {
+            parts[i] += step;
+            remainder -= step;
+            i += 1;
+        }
+        Ok(parts
+            .iter()
+            .map(|&p| FinMoney::new(p, self.currency))
+            .collect())
     }
 
     /// Divides this `FinMoney` by another `FinMoney`, rounding according to the strategy.
@@ -682,6 +812,216 @@ impl FinMoney {
             None
         }
     }
+
+    /// Safe alternative to `Sum` — sums an iterator of `FinMoney` returning `Result`.
+    ///
+    /// Returns `Err(InvalidAmount)` for an empty iterator, or propagates
+    /// `CurrencyMismatch` / `ArithmeticOverflow` from `plus_money`.
+    ///
+    /// # Errors
+    ///
+    /// - `FinMoneyError::InvalidAmount` if the iterator is empty.
+    /// - `FinMoneyError::CurrencyMismatch` if currencies differ.
+    /// - `FinMoneyError::ArithmeticOverflow` if the sum overflows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let items = vec![
+    ///     FinMoney::new(dec!(10), FinMoneyCurrency::USD),
+    ///     FinMoney::new(dec!(20), FinMoneyCurrency::USD),
+    /// ];
+    /// let total = FinMoney::try_sum(items.into_iter()).unwrap();
+    /// assert_eq!(total.get_amount(), dec!(30));
+    /// ```
+    pub fn try_sum(iter: impl Iterator<Item = FinMoney>) -> Result<FinMoney, FinMoneyError> {
+        let mut iter = iter.peekable();
+        let first = iter
+            .next()
+            .ok_or(FinMoneyError::InvalidAmount("empty iterator".into()))?;
+        iter.try_fold(first, |acc, item| acc.plus_money(item))
+    }
+
+    /// Converts this monetary value to a different currency using the given exchange rate.
+    ///
+    /// The result is rounded to the target currency's precision using the specified
+    /// rounding strategy.
+    ///
+    /// # Errors
+    ///
+    /// - `FinMoneyError::InvalidAmount` if `rate` is zero or negative.
+    /// - `FinMoneyError::ArithmeticOverflow` if the multiplication overflows.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+    /// let eur = usd.convert_to(
+    ///     FinMoneyCurrency::EUR,
+    ///     dec!(0.85),
+    ///     FinMoneyRoundingStrategy::MidpointNearestEven,
+    /// ).unwrap();
+    /// assert_eq!(eur.get_amount(), dec!(85.00));
+    /// assert_eq!(eur.get_currency(), FinMoneyCurrency::EUR);
+    /// ```
+    pub fn convert_to(
+        &self,
+        target_currency: FinMoneyCurrency,
+        rate: Decimal,
+        strategy: FinMoneyRoundingStrategy,
+    ) -> Result<FinMoney, FinMoneyError> {
+        if rate <= Decimal::ZERO {
+            return Err(FinMoneyError::InvalidAmount(
+                "exchange rate must be positive".into(),
+            ));
+        }
+        let converted = self
+            .amount
+            .checked_mul(rate)
+            .ok_or(FinMoneyError::ArithmeticOverflow)?;
+        let precision = target_currency.get_precision() as u32;
+        let rounded = converted.round_dp_with_strategy(precision, strategy.to_decimal_strategy());
+        Ok(FinMoney::new(rounded, target_currency))
+    }
+
+    /// Computes the exchange rate from `self` to `other`: `other.amount / self.amount`.
+    ///
+    /// # Errors
+    ///
+    /// - `FinMoneyError::DivisionByZero` if `self.amount` is zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+    /// let eur = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);
+    /// let rate = usd.exchange_rate_to(eur).unwrap();
+    /// assert_eq!(rate, dec!(0.85));
+    /// ```
+    pub fn exchange_rate_to(&self, other: FinMoney) -> Result<Decimal, FinMoneyError> {
+        if self.amount.is_zero() {
+            return Err(FinMoneyError::DivisionByZero);
+        }
+        Ok(other.amount / self.amount)
+    }
+
+    /// Formats the monetary value with custom thousands and decimal separators,
+    /// appending the currency code.
+    ///
+    /// Inserts `thousands_sep` every 3 digits in the integer part (right to left),
+    /// uses `decimal_sep` between integer and fractional parts, and appends ` CODE`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::new(dec!(1234567.89), FinMoneyCurrency::USD);
+    /// assert_eq!(m.format_with_separator(',', '.'), "1,234,567.89 USD");
+    ///
+    /// let neg = FinMoney::new(dec!(-50000), FinMoneyCurrency::EUR);
+    /// assert_eq!(neg.format_with_separator('.', ','), "-50.000 EUR");
+    /// ```
+    pub fn format_with_separator(&self, thousands_sep: char, decimal_sep: char) -> String {
+        let s = self.amount.to_string();
+        let (negative, abs_str) = if let Some(rest) = s.strip_prefix('-') {
+            (true, rest)
+        } else {
+            (false, s.as_str())
+        };
+
+        let (int_part, frac_part) = match abs_str.split_once('.') {
+            Some((i, f)) => (i, Some(f)),
+            None => (abs_str, None),
+        };
+
+        // Insert thousands separator every 3 digits from the right
+        let mut formatted_int = String::with_capacity(int_part.len() + int_part.len() / 3);
+        for (i, ch) in int_part.chars().rev().enumerate() {
+            if i > 0 && i % 3 == 0 {
+                formatted_int.push(thousands_sep);
+            }
+            formatted_int.push(ch);
+        }
+        let formatted_int: String = formatted_int.chars().rev().collect();
+
+        let mut result = String::new();
+        if negative {
+            result.push('-');
+        }
+        result.push_str(&formatted_int);
+
+        if let Some(frac) = frac_part {
+            result.push(decimal_sep);
+            result.push_str(frac);
+        }
+
+        result.push(' ');
+        result.push_str(self.currency.get_code());
+        result
+    }
+
+    /// Formats the amount padded with trailing zeros to exactly `dp` decimal places,
+    /// followed by the currency code.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::new(dec!(10.5), FinMoneyCurrency::USD);
+    /// assert_eq!(m.format_padded(4), "10.5000 USD");
+    ///
+    /// let m2 = FinMoney::new(dec!(42), FinMoneyCurrency::EUR);
+    /// assert_eq!(m2.format_padded(0), "42 EUR");
+    ///
+    /// let m3 = FinMoney::new(dec!(-7.123456), FinMoneyCurrency::BTC);
+    /// assert_eq!(m3.format_padded(3), "-7.123 BTC");
+    /// ```
+    pub fn format_padded(&self, dp: u32) -> String {
+        let rounded = self
+            .amount
+            .round_dp_with_strategy(dp, rust_decimal::RoundingStrategy::MidpointNearestEven);
+
+        let s = rounded.to_string();
+
+        let result = if dp == 0 {
+            // No decimal places — strip any fractional part
+            match s.split_once('.') {
+                Some((int_part, _)) => int_part.to_string(),
+                None => s,
+            }
+        } else {
+            match s.split_once('.') {
+                Some((int_part, frac_part)) => {
+                    let padded_frac = if (frac_part.len() as u32) < dp {
+                        let zeros = dp as usize - frac_part.len();
+                        format!("{}{}", frac_part, "0".repeat(zeros))
+                    } else {
+                        frac_part[..dp as usize].to_string()
+                    };
+                    format!("{}.{}", int_part, padded_frac)
+                }
+                None => {
+                    // No decimal point — add one with zeros
+                    format!("{}.{}", s, "0".repeat(dp as usize))
+                }
+            }
+        };
+
+        format!("{} {}", result, self.currency.get_code())
+    }
 }
 
 // -- Operator Overloads --
@@ -703,7 +1043,7 @@ impl Sub for FinMoney {
 }
 
 impl Mul<Decimal> for FinMoney {
-    type Output = FinMoney;
+    type Output = Result<FinMoney, FinMoneyError>;
 
     fn mul(self, rhs: Decimal) -> Self::Output {
         self.multiplied_by_decimal(rhs)
@@ -711,7 +1051,7 @@ impl Mul<Decimal> for FinMoney {
 }
 
 impl Mul<FinMoney> for Decimal {
-    type Output = FinMoney;
+    type Output = Result<FinMoney, FinMoneyError>;
 
     fn mul(self, rhs: FinMoney) -> Self::Output {
         rhs.multiplied_by_decimal(self)
@@ -729,5 +1069,22 @@ impl Neg for FinMoney {
 impl fmt::Display for FinMoney {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} {}", self.amount, self.currency.get_code())
+    }
+}
+
+impl TryFrom<(f64, FinMoneyCurrency)> for FinMoney {
+    type Error = FinMoneyError;
+
+    fn try_from((value, currency): (f64, FinMoneyCurrency)) -> Result<Self, Self::Error> {
+        FinMoney::from_f64(value, currency)
+    }
+}
+
+impl std::iter::Sum for FinMoney {
+    fn sum<I: Iterator<Item = Self>>(mut iter: I) -> Self {
+        let first = iter.next().expect("cannot sum empty iterator of FinMoney");
+        iter.fold(first, |acc, item| {
+            (acc + item).expect("currency mismatch or overflow in Sum")
+        })
     }
 }

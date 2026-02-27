@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let total = (price + tax)?;
     println!("Price + Tax = {}", total);
 
-    let doubled = price * dec!(2);
+    let doubled = (price * dec!(2))?;
     println!("Price * 2 = {}", doubled);
 
     let divided =

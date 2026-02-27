@@ -27,7 +27,7 @@ fn benchmark_fin_money_arithmetic(c: &mut Criterion) {
     });
 
     c.bench_function("FinMoney_multiplication", |b| {
-        b.iter(|| black_box(fin_money1) * black_box(dec!(2)))
+        b.iter(|| (black_box(fin_money1) * black_box(dec!(2))).unwrap())
     });
 
     c.bench_function("FinMoney_division", |b| {

@@ -8,13 +8,20 @@ A precise, panic-free FinMoney library for Rust. finmoney provides safe monetary
 
 ## Features
 
-- **Precise arithmetic**: Built on `rust_decimal` for exact decimal calculations
+- **Precise arithmetic**: Built on `rust_decimal` for exact decimal calculations with checked overflow detection
 - **Currency safety**: Prevents mixing different currencies in operations
 - **Configurable rounding**: Multiple rounding strategies for different use cases
 - **Tick handling**: Exchange-grade price/quantity rounding to valid tick sizes
 - **Zero panics**: All operations return `Result` types for error handling
+- **11 predefined currencies**: USD, EUR, BTC, ETH, GBP, JPY, CHF, CNY, RUB, USDT, SOL
+- **Money allocation**: Split amounts by weights with zero-loss remainder distribution
+- **Currency conversion**: `convert_to` and `exchange_rate_to` for multi-currency workflows
+- **Iterator support**: `Sum` trait and `try_sum` for idiomatic collection operations
+- **Flexible formatting**: `format_with_separator` and `format_padded` for display
+- **Convenient constructors**: `from_i64`, `from_f64`, `TryFrom<(f64, FinMoneyCurrency)>`
+- **Error predicates**: `is_currency_mismatch()`, `is_division_by_zero()`, `is_overflow()`
 - **Serde support**: Optional serialization/deserialization (feature-gated)
-- **Modern Rust**: Uses Rust 2024 edition for the latest language features
+- **Modern Rust**: Uses Rust 2024 edition, no unsafe code
 
 ## Requirements
 
@@ -35,10 +42,10 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-finmoney = "2.0.1"
+finmoney = "3.0.0"
 
 # For serialization support
-finmoney = { version = "2.0.1", features = ["serde"] }
+finmoney = { version = "3.0.0", features = ["serde"] }
 ```
 
 ## Basic Usage
@@ -63,9 +70,9 @@ let tax = FinMoney::new(dec!(1.05), usd);
 let total = (price + tax)?;
 println!("{}", total); // 11.55 USD
 
-// Multiply by decimal (both directions work)
-let doubled = price * dec!(2);
-let also_doubled = dec!(2) * price;
+// Multiply by decimal (returns Result, both directions work)
+let doubled = (price * dec!(2))?;
+let also_doubled = (dec!(2) * price)?;
 println!("{}", doubled); // 21.00 USD
 
 // Division with rounding
@@ -213,19 +220,113 @@ match result {
     Err(FinMoneyError::CurrencyMismatch { expected, actual }) => {
         println!("Currency mismatch: expected {}, got {}", expected, actual);
     }
+    Err(FinMoneyError::ArithmeticOverflow) => println!("Overflow detected"),
     Err(e) => println!("Other error: {}", e),
+}
+
+// Convenient error predicates (no pattern matching needed)
+if let Err(e) = result {
+    if e.is_currency_mismatch() { /* ... */ }
+    if e.is_division_by_zero() { /* ... */ }
+    if e.is_overflow() { /* ... */ }
 }
 ```
 
 ## Predefined Currencies
 
-Common currencies are available as constants:
+11 common currencies are available as constants:
 
 ```rust
-let usd_money = FinMoney::new(dec!(100), FinMoneyCurrency::USD);  // 2 decimal places
-let eur_money = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);   // 2 decimal places
-let btc_money = FinMoney::new(dec!(0.001), FinMoneyCurrency::BTC); // 8 decimal places
-let eth_money = FinMoney::new(dec!(0.1), FinMoneyCurrency::ETH);   // 18 decimal places
+let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);    // precision 2
+let eur = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);     // precision 2
+let btc = FinMoney::new(dec!(0.001), FinMoneyCurrency::BTC);  // precision 8
+let eth = FinMoney::new(dec!(0.1), FinMoneyCurrency::ETH);    // precision 18
+let gbp = FinMoney::new(dec!(80), FinMoneyCurrency::GBP);     // precision 2
+let jpy = FinMoney::new(dec!(15000), FinMoneyCurrency::JPY);  // precision 0
+let chf = FinMoney::new(dec!(90), FinMoneyCurrency::CHF);     // precision 2
+let cny = FinMoney::new(dec!(720), FinMoneyCurrency::CNY);    // precision 2
+let rub = FinMoney::new(dec!(9500), FinMoneyCurrency::RUB);   // precision 2
+let usdt = FinMoney::new(dec!(100), FinMoneyCurrency::USDT);  // precision 6
+let sol = FinMoney::new(dec!(0.5), FinMoneyCurrency::SOL);    // precision 9
+
+// Get all predefined currencies
+let all = FinMoneyCurrency::all_predefined(); // &[FinMoneyCurrency] with 11 entries
+
+// Display trait
+println!("{}", FinMoneyCurrency::USD); // "USD (US Dollar)"
+println!("{}", FinMoneyCurrency::BTC); // "BTC"
+```
+
+## Convenient Constructors
+
+```rust
+// From i64
+let money = FinMoney::from_i64(100, FinMoneyCurrency::USD);
+
+// From f64 (returns Result — NaN/Infinity produce errors)
+let money = FinMoney::from_f64(99.95, FinMoneyCurrency::USD)?;
+
+// Via TryFrom
+let money = FinMoney::try_from((99.95, FinMoneyCurrency::USD))?;
+```
+
+## Money Allocation
+
+Split a monetary amount by weights with zero-loss remainder distribution:
+
+```rust
+let total = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
+// [33.34 USD, 33.33 USD, 33.33 USD] — remainder goes to first parts
+assert_eq!(parts.iter().map(|p| p.get_amount()).sum::<Decimal>(), dec!(100));
+```
+
+## Iterator Support
+
+```rust
+let amounts = vec![
+    FinMoney::new(dec!(10), FinMoneyCurrency::USD),
+    FinMoney::new(dec!(20), FinMoneyCurrency::USD),
+    FinMoney::new(dec!(30), FinMoneyCurrency::USD),
+];
+
+// Sum trait (panics on currency mismatch or empty iterator)
+let total: FinMoney = amounts.clone().into_iter().sum();
+
+// Safe alternative
+let total = FinMoney::try_sum(amounts.into_iter())?;
+```
+
+## Currency Conversion
+
+```rust
+let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+
+// Convert at a given rate
+let eur = usd.convert_to(
+    FinMoneyCurrency::EUR,
+    dec!(0.92),
+    FinMoneyRoundingStrategy::MidpointNearestEven,
+)?;
+println!("{}", eur); // 92.00 EUR
+
+// Calculate exchange rate between two amounts
+let rate = usd.exchange_rate_to(eur)?;
+println!("Rate: {}", rate); // 0.92
+```
+
+## Formatting
+
+```rust
+let money = FinMoney::new(dec!(1234567.89), FinMoneyCurrency::USD);
+
+// Custom separators
+println!("{}", money.format_with_separator(',', '.')); // "1,234,567.89 USD"
+println!("{}", money.format_with_separator('.', ',')); // "1.234.567,89 USD"
+
+// Pad to fixed decimal places
+let m = FinMoney::new(dec!(10.5), FinMoneyCurrency::USD);
+println!("{}", m.format_padded(4)); // "10.5000 USD"
 ```
 
 ## Serde Support
@@ -234,7 +335,7 @@ Enable the `serde` feature for serialization support:
 
 ```toml
 [dependencies]
-finmoney = { version = "2.0.1", features = ["serde"] }
+finmoney = { version = "3.0.0", features = ["serde"] }
 ```
 use serde::{Serialize, Deserialize};
 
@@ -252,6 +353,68 @@ let order = Order {
 let json = serde_json::to_string(&order)?;
 let deserialized: Order = serde_json::from_str(&json)?;
 ```
+
+## Migration Guide
+
+This section covers breaking changes introduced in v2.x. Update your code accordingly.
+
+### 1. Checked arithmetic: `plus_decimal` / `minus_decimal`
+
+These methods now return `Result<FinMoney, FinMoneyError>` instead of `FinMoney` to detect overflow.
+
+Before:
+```rust
+let result = money.plus_decimal(dec!(5));    // FinMoney
+let result = money.minus_decimal(dec!(3));   // FinMoney
+```
+
+After:
+```rust
+let result = money.plus_decimal(dec!(5))?;   // Result<FinMoney, FinMoneyError>
+let result = money.minus_decimal(dec!(3))?;  // Result<FinMoney, FinMoneyError>
+```
+
+### 2. `Mul<Decimal> for FinMoney`
+
+The `*` operator with `Decimal` now returns `Result<FinMoney, FinMoneyError>` instead of `FinMoney`.
+
+Before:
+```rust
+let doubled = money * dec!(2);               // FinMoney
+```
+
+After:
+```rust
+let doubled = (money * dec!(2))?;            // Result<FinMoney, FinMoneyError>
+```
+
+### 3. `Mul<FinMoney> for Decimal`
+
+Same change — multiplying `Decimal * FinMoney` now returns `Result`.
+
+Before:
+```rust
+let doubled = dec!(2) * money;               // FinMoney
+```
+
+After:
+```rust
+let doubled = (dec!(2) * money)?;            // Result<FinMoney, FinMoneyError>
+```
+
+### 4. `multiplied_by_decimal`
+
+Before:
+```rust
+let result = money.multiplied_by_decimal(dec!(1.5));  // FinMoney
+```
+
+After:
+```rust
+let result = money.multiplied_by_decimal(dec!(1.5))?; // Result<FinMoney, FinMoneyError>
+```
+
+All arithmetic operations now consistently return `Result`, making overflow detection explicit. The `ArithmeticOverflow` error variant is returned when the result exceeds the `Decimal` range.
 
 ## Performance
 

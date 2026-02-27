@@ -37,7 +37,7 @@ fn test_fin_money_arithmetic() -> Result<(), FinMoneyError> {
     assert_eq!(diff.get_amount(), dec!(5.25));
 
     // Multiplication with decimal
-    let product = fin_money1 * dec!(2);
+    let product = (fin_money1 * dec!(2))?;
     assert_eq!(product.get_amount(), dec!(21.00));
 
     // Division
@@ -202,5 +202,240 @@ fn test_rescale() -> Result<(), FinMoneyError> {
     assert_eq!(rescaled.get_precision(), 3);
     assert_eq!(rescaled.get_amount(), dec!(10.567));
 
+    Ok(())
+}
+
+// ============================================================
+// Overflow / boundary tests (Requirement 8.1)
+// ============================================================
+
+#[test]
+fn test_addition_overflow_with_decimal_max() {
+    let usd = FinMoneyCurrency::USD;
+    let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
+    let one = FinMoney::new(dec!(1), usd);
+
+    let result = max_money + one;
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+#[test]
+fn test_subtraction_overflow_with_decimal_min() {
+    let usd = FinMoneyCurrency::USD;
+    let min_money = FinMoney::new(rust_decimal::Decimal::MIN, usd);
+    let one = FinMoney::new(dec!(1), usd);
+
+    let result = min_money - one;
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+#[test]
+fn test_multiplication_overflow_with_decimal_max() {
+    let usd = FinMoneyCurrency::USD;
+    let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
+
+    let result = max_money * dec!(2);
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+#[test]
+fn test_plus_decimal_overflow() {
+    let usd = FinMoneyCurrency::USD;
+    let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
+
+    let result = max_money.plus_decimal(dec!(1));
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+#[test]
+fn test_minus_decimal_overflow() {
+    let usd = FinMoneyCurrency::USD;
+    let min_money = FinMoney::new(rust_decimal::Decimal::MIN, usd);
+
+    let result = min_money.minus_decimal(dec!(1));
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+#[test]
+fn test_multiplied_by_money_overflow() {
+    let usd = FinMoneyCurrency::USD;
+    let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
+    let two = FinMoney::new(dec!(2), usd);
+
+    let result = max_money.multiplied_by_money(two);
+    assert!(result.is_err());
+    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+}
+
+// ============================================================
+// Negative value arithmetic tests (Requirement 8.2)
+// ============================================================
+
+#[test]
+fn test_negative_addition() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-10.50), usd);
+    let b = FinMoney::new(dec!(-5.25), usd);
+
+    let sum = (a + b)?;
+    assert_eq!(sum.get_amount(), dec!(-15.75));
+    Ok(())
+}
+
+#[test]
+fn test_negative_subtraction() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-10.50), usd);
+    let b = FinMoney::new(dec!(-5.25), usd);
+
+    let diff = (a - b)?;
+    assert_eq!(diff.get_amount(), dec!(-5.25));
+    Ok(())
+}
+
+#[test]
+fn test_negative_multiplication() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-10.50), usd);
+
+    // negative * positive = negative
+    let result = (a * dec!(2))?;
+    assert_eq!(result.get_amount(), dec!(-21.00));
+
+    // negative * negative = positive
+    let result2 = (a * dec!(-3))?;
+    assert_eq!(result2.get_amount(), dec!(31.50));
+    Ok(())
+}
+
+#[test]
+fn test_negative_plus_decimal() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-10), usd);
+
+    let result = a.plus_decimal(dec!(-5))?;
+    assert_eq!(result.get_amount(), dec!(-15));
+
+    let result2 = a.plus_decimal(dec!(15))?;
+    assert_eq!(result2.get_amount(), dec!(5));
+    Ok(())
+}
+
+#[test]
+fn test_negative_minus_decimal() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-10), usd);
+
+    let result = a.minus_decimal(dec!(5))?;
+    assert_eq!(result.get_amount(), dec!(-15));
+
+    let result2 = a.minus_decimal(dec!(-20))?;
+    assert_eq!(result2.get_amount(), dec!(10));
+    Ok(())
+}
+
+#[test]
+fn test_negative_multiplied_by_money() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(-5), usd);
+    let b = FinMoney::new(dec!(-4), usd);
+
+    let result = a.multiplied_by_money(b)?;
+    assert_eq!(result.get_amount(), dec!(20));
+    Ok(())
+}
+
+// ============================================================
+// Precision 0 (JPY) tests (Requirement 8.3)
+// ============================================================
+
+#[test]
+fn test_jpy_precision_zero_arithmetic() -> Result<(), FinMoneyError> {
+    let jpy = FinMoneyCurrency::JPY;
+    let a = FinMoney::new(dec!(1000), jpy);
+    let b = FinMoney::new(dec!(500), jpy);
+
+    let sum = (a + b)?;
+    assert_eq!(sum.get_amount(), dec!(1500));
+
+    let diff = (a - b)?;
+    assert_eq!(diff.get_amount(), dec!(500));
+
+    let product = (a * dec!(3))?;
+    assert_eq!(product.get_amount(), dec!(3000));
+    Ok(())
+}
+
+#[test]
+fn test_jpy_precision_zero_rounding() {
+    let jpy = FinMoneyCurrency::JPY;
+    let m = FinMoney::new(dec!(1234.56), jpy);
+
+    let rounded = m.round_dp_with_strategy(0, FinMoneyRoundingStrategy::MidpointNearestEven);
+    assert_eq!(rounded.get_amount(), dec!(1235));
+}
+
+#[test]
+fn test_jpy_precision_zero_allocate() -> Result<(), FinMoneyError> {
+    let jpy = FinMoneyCurrency::JPY;
+    let total = FinMoney::new(dec!(1000), jpy);
+
+    let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
+    assert_eq!(parts.len(), 3);
+    let sum: rust_decimal::Decimal = parts.iter().map(|p| p.get_amount()).sum();
+    assert_eq!(sum, dec!(1000));
+    Ok(())
+}
+
+#[test]
+fn test_jpy_format_padded() {
+    let jpy = FinMoneyCurrency::JPY;
+    let m = FinMoney::new(dec!(12345), jpy);
+
+    assert_eq!(m.format_padded(0), "12345 JPY");
+}
+
+// ============================================================
+// Precision 28 tests (Requirement 8.4)
+// ============================================================
+
+#[test]
+fn test_precision_28_arithmetic() -> Result<(), FinMoneyError> {
+    let high_prec = FinMoneyCurrency::new(100, "HP28", None::<String>, 28)?;
+    let a = FinMoney::new(dec!(1.0000000000000000000000000001), high_prec);
+    let b = FinMoney::new(dec!(2.0000000000000000000000000002), high_prec);
+
+    let sum = (a + b)?;
+    assert_eq!(sum.get_amount(), dec!(3.0000000000000000000000000003));
+    Ok(())
+}
+
+#[test]
+fn test_precision_28_rounding() -> Result<(), FinMoneyError> {
+    let high_prec = FinMoneyCurrency::new(100, "HP28", None::<String>, 28)?;
+    let m = FinMoney::new(dec!(1.1234567890123456789012345678), high_prec);
+
+    let rounded = m.round_dp_with_strategy(28, FinMoneyRoundingStrategy::MidpointNearestEven);
+    // Should keep all 28 decimal places
+    assert_eq!(rounded.get_amount(), dec!(1.1234567890123456789012345678));
+    Ok(())
+}
+
+#[test]
+fn test_precision_28_format_padded() -> Result<(), FinMoneyError> {
+    let high_prec = FinMoneyCurrency::new(100, "HP28", None::<String>, 28)?;
+    let m = FinMoney::new(dec!(1.5), high_prec);
+
+    let formatted = m.format_padded(28);
+    assert!(formatted.ends_with(" HP28"));
+    // Should have 28 digits after decimal point
+    let amount_part = formatted.strip_suffix(" HP28").unwrap();
+    let frac = amount_part.split('.').nth(1).unwrap();
+    assert_eq!(frac.len(), 28);
     Ok(())
 }
