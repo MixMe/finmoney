@@ -46,12 +46,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("4. Comparisons");
     let price2 = FinMoney::new(dec!(9.75), usd);
 
-    if price.is_greater_than(price2)? {
+    if price > price2 {
         println!("{} is greater than {}", price, price2);
     }
 
-    let min_price: FinMoney = price.min(price2)?;
-    let max_price: FinMoney = price.max(price2)?;
+    let min_price = price.min(price2);
+    let max_price = price.max(price2);
     println!("Min price: {}", min_price);
     println!("Max price: {}", max_price);
     println!();

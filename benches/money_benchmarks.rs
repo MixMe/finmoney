@@ -48,17 +48,13 @@ fn benchmark_fin_money_comparisons(c: &mut Criterion) {
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
     c.bench_function("FinMoney_comparison", |b| {
-        b.iter(|| {
-            black_box(fin_money1)
-                .is_greater_than(black_box(fin_money2))
-                .unwrap()
-        })
+        b.iter(|| black_box(fin_money1) > black_box(fin_money2))
     });
 
     c.bench_function("FinMoney_min_max", |b| {
         b.iter(|| {
-            let min = black_box(fin_money1).min(black_box(fin_money2)).unwrap();
-            let max = black_box(fin_money1).max(black_box(fin_money2)).unwrap();
+            let min = black_box(fin_money1).min(black_box(fin_money2));
+            let max = black_box(fin_money1).max(black_box(fin_money2));
             (min, max)
         })
     });

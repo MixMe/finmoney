@@ -203,10 +203,22 @@ impl FinMoney {
         self.currency.get_precision()
     }
 
-    /// Returns the currency code.
+    /// Returns the currency code as a string slice.
     #[inline]
     pub fn get_currency_code(&self) -> &str {
         self.currency.get_code()
+    }
+
+    /// Returns the currency code as a `TinyAsciiStr<16>` for zero-copy usage.
+    #[inline]
+    pub fn get_currency_code_tiny(&self) -> tinystr::TinyAsciiStr<16> {
+        self.currency.get_code_tiny()
+    }
+
+    /// Returns the currency name as a `TinyAsciiStr<52>`, if available.
+    #[inline]
+    pub fn get_currency_name_tiny(&self) -> Option<tinystr::TinyAsciiStr<52>> {
+        self.currency.get_name_tiny()
     }
 
     // -- Arithmetic Operations --
@@ -227,15 +239,16 @@ impl FinMoney {
 
     /// Adds a `Decimal` amount to this `FinMoney`.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
+    /// Panics on arithmetic overflow (unreachable for realistic financial amounts).
     #[inline]
-    pub fn plus_decimal(&self, d: Decimal) -> Result<FinMoney, FinMoneyError> {
-        self.amount
+    pub fn plus_decimal(&self, d: Decimal) -> FinMoney {
+        let sum = self
+            .amount
             .checked_add(d)
-            .map(|sum| FinMoney::new(sum, self.currency))
-            .ok_or(FinMoneyError::ArithmeticOverflow)
+            .expect("plus_decimal: arithmetic overflow");
+        FinMoney::new(sum, self.currency)
     }
 
     /// Subtracts another `FinMoney` value from this one, ensuring the same currency.
@@ -254,15 +267,16 @@ impl FinMoney {
 
     /// Subtracts a `Decimal` amount from this `FinMoney`.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::ArithmeticOverflow` if the result overflows.
+    /// Panics on arithmetic overflow (unreachable for realistic financial amounts).
     #[inline]
-    pub fn minus_decimal(&self, d: Decimal) -> Result<FinMoney, FinMoneyError> {
-        self.amount
+    pub fn minus_decimal(&self, d: Decimal) -> FinMoney {
+        let diff = self
+            .amount
             .checked_sub(d)
-            .map(|diff| FinMoney::new(diff, self.currency))
-            .ok_or(FinMoneyError::ArithmeticOverflow)
+            .expect("minus_decimal: arithmetic overflow");
+        FinMoney::new(diff, self.currency)
     }
 
     /// Multiplies this `FinMoney` by another `FinMoney`, ensuring the same currency.
@@ -389,40 +403,50 @@ impl FinMoney {
 
     /// Compares this `FinMoney` with another, ensuring the same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn compare(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
+    /// Panics if the currencies don't match. Use [`FinMoney::try_compare()`]
+    /// for the checked variant.
+    pub fn compare(&self, other: FinMoney) -> Ordering {
+        self.assert_same_currency(other)
+            .expect("compare: currency mismatch");
+        self.amount.cmp(&other.amount)
+    }
+
+    /// Compares this `FinMoney` with another, returning `Err` on currency mismatch.
+    pub fn try_compare(&self, other: FinMoney) -> Result<Ordering, FinMoneyError> {
         self.assert_same_currency(other)?;
         Ok(self.amount.cmp(&other.amount))
     }
 
     /// Returns the minimum of self and other, ensuring same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn min(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(if self.amount <= other.amount {
+    /// Panics if the currencies don't match.
+    pub fn min(&self, other: FinMoney) -> FinMoney {
+        self.assert_same_currency(other)
+            .expect("min: currency mismatch");
+        if self.amount <= other.amount {
             *self
         } else {
             other
-        })
+        }
     }
 
     /// Returns the maximum of self and other, ensuring same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn max(&self, other: FinMoney) -> Result<FinMoney, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(if self.amount >= other.amount {
+    /// Panics if the currencies don't match.
+    pub fn max(&self, other: FinMoney) -> FinMoney {
+        self.assert_same_currency(other)
+            .expect("max: currency mismatch");
+        if self.amount >= other.amount {
             *self
         } else {
             other
-        })
+        }
     }
 
     /// Checks if this `FinMoney` has the same currency as another.
@@ -437,22 +461,24 @@ impl FinMoney {
 
     /// Checks if this `FinMoney` is less than another, ensuring the same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_less_than(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(self.amount < other.amount)
+    /// Panics if the currencies don't match.
+    pub fn is_less_than(&self, other: FinMoney) -> bool {
+        self.assert_same_currency(other)
+            .expect("is_less_than: currency mismatch");
+        self.amount < other.amount
     }
 
     /// Checks if this `FinMoney` is less than or equal to another, ensuring the same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_less_than_or_equal(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(self.amount <= other.amount)
+    /// Panics if the currencies don't match.
+    pub fn is_less_than_or_equal(&self, other: FinMoney) -> bool {
+        self.assert_same_currency(other)
+            .expect("is_less_than_or_equal: currency mismatch");
+        self.amount <= other.amount
     }
 
     /// Checks if this `FinMoney` amount is less than a `Decimal`.
@@ -467,22 +493,24 @@ impl FinMoney {
 
     /// Checks if this `FinMoney` is greater than another, ensuring the same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_greater_than(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(self.amount > other.amount)
+    /// Panics if the currencies don't match.
+    pub fn is_greater_than(&self, other: FinMoney) -> bool {
+        self.assert_same_currency(other)
+            .expect("is_greater_than: currency mismatch");
+        self.amount > other.amount
     }
 
     /// Checks if this `FinMoney` is greater than or equal to another, ensuring the same currency.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::CurrencyMismatch` if the currencies don't match.
-    pub fn is_greater_than_or_equal(&self, other: FinMoney) -> Result<bool, FinMoneyError> {
-        self.assert_same_currency(other)?;
-        Ok(self.amount >= other.amount)
+    /// Panics if the currencies don't match.
+    pub fn is_greater_than_or_equal(&self, other: FinMoney) -> bool {
+        self.assert_same_currency(other)
+            .expect("is_greater_than_or_equal: currency mismatch");
+        self.amount >= other.amount
     }
 
     /// Checks if this `FinMoney` amount is greater than a `Decimal`.
@@ -499,13 +527,16 @@ impl FinMoney {
 
     /// Rescales the amount to a new precision.
     ///
-    /// # Errors
+    /// # Panics
     ///
-    /// Returns `FinMoneyError::InvalidPrecision` if the new precision is > 28.
-    pub fn rescale(&self, new_precision: u8) -> Result<FinMoney, FinMoneyError> {
-        let new_currency = self.currency.with_precision(new_precision)?;
+    /// Panics if the new precision is > 28 (Decimal limit).
+    pub fn rescale(&self, new_precision: u8) -> FinMoney {
+        let new_currency = self
+            .currency
+            .with_precision(new_precision)
+            .expect("rescale: invalid precision (must be <= 28)");
         let scaled = self.amount.round_dp(new_precision.into());
-        Ok(FinMoney::new(scaled, new_currency))
+        FinMoney::new(scaled, new_currency)
     }
 
     /// Returns a rounded version of this `FinMoney` using the specified strategy.
@@ -870,9 +901,13 @@ impl FinMoney {
         k.fract().is_zero()
     }
 
-    /// Helper function: if tick == 10^-dp (e.g., 0.001 → dp=3), return dp.
+    /// Returns the number of decimal places if tick is a power of 10 (e.g., 0.001 → 3).
+    ///
+    /// Returns `None` for non-power-of-10 ticks (e.g., 0.25 → None).
+    /// Useful for determining whether a tick size allows simple decimal rounding
+    /// vs. the general divide-round-multiply path.
     #[inline]
-    fn tick_power10_dp(tick: Decimal) -> Option<u32> {
+    pub fn tick_power10_dp(tick: Decimal) -> Option<u32> {
         // If tick is exactly 10^-dp, then its scale is dp and its coefficient is 1.
         // This avoids powi/multiply allocations and is significantly cheaper.
         let dp = tick.scale();
@@ -1162,6 +1197,31 @@ impl SubAssign for FinMoney {
     /// Panics if currencies differ or if subtraction overflows.
     fn sub_assign(&mut self, rhs: Self) {
         *self = self.minus_money(rhs).expect("SubAssign: currency mismatch or overflow");
+    }
+}
+
+impl PartialOrd for FinMoney {
+    /// Compares two `FinMoney` values by amount.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the currencies don't match. Only compare values of the same
+    /// currency — currency mismatch is a programming error, not a runtime condition.
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for FinMoney {
+    /// Compares two `FinMoney` values by amount.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the currencies don't match.
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.assert_same_currency(*other)
+            .expect("Ord::cmp: currency mismatch");
+        self.amount.cmp(&other.amount)
     }
 }
 
