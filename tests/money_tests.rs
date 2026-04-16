@@ -73,23 +73,27 @@ fn test_division_by_zero() {
 }
 
 #[test]
-fn test_comparisons() -> Result<(), FinMoneyError> {
+fn test_comparisons() {
     let usd = FinMoneyCurrency::USD;
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
-    assert!(fin_money1.is_greater_than(fin_money2)?);
-    assert!(fin_money2.is_less_than(fin_money1)?);
-    assert!(fin_money1.is_greater_than_or_equal(fin_money1)?);
-    assert!(fin_money2.is_less_than_or_equal(fin_money1)?);
+    assert!(fin_money1.is_greater_than(fin_money2));
+    assert!(fin_money2.is_less_than(fin_money1));
+    assert!(fin_money1.is_greater_than_or_equal(fin_money1));
+    assert!(fin_money2.is_less_than_or_equal(fin_money1));
 
-    let min: FinMoney = fin_money1.min(fin_money2)?;
-    let max: FinMoney = fin_money1.max(fin_money2)?;
+    let min = fin_money1.min(fin_money2);
+    let max = fin_money1.max(fin_money2);
 
     assert_eq!(min.get_amount(), dec!(5.25));
     assert_eq!(max.get_amount(), dec!(10.50));
 
-    Ok(())
+    // PartialOrd / Ord operators
+    assert!(fin_money1 > fin_money2);
+    assert!(fin_money2 < fin_money1);
+    assert!(fin_money1 >= fin_money1);
+    assert!(fin_money2 <= fin_money1);
 }
 
 #[test]
@@ -194,15 +198,13 @@ fn test_precision_with_creation() {
 }
 
 #[test]
-fn test_rescale() -> Result<(), FinMoneyError> {
+fn test_rescale() {
     let usd = FinMoneyCurrency::USD; // 2 decimal places
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
-    let rescaled = fin_money.rescale(3)?;
+    let rescaled = fin_money.rescale(3);
     assert_eq!(rescaled.get_precision(), 3);
     assert_eq!(rescaled.get_amount(), dec!(10.567));
-
-    Ok(())
 }
 
 // ============================================================
@@ -251,23 +253,21 @@ fn test_multiplication_overflow_checked_returns_err() {
 }
 
 #[test]
+#[should_panic(expected = "arithmetic overflow")]
 fn test_plus_decimal_overflow() {
     let usd = FinMoneyCurrency::USD;
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
 
-    let result = max_money.plus_decimal(dec!(1));
-    assert!(result.is_err());
-    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+    let _ = max_money.plus_decimal(dec!(1));
 }
 
 #[test]
+#[should_panic(expected = "arithmetic overflow")]
 fn test_minus_decimal_overflow() {
     let usd = FinMoneyCurrency::USD;
     let min_money = FinMoney::new(rust_decimal::Decimal::MIN, usd);
 
-    let result = min_money.minus_decimal(dec!(1));
-    assert!(result.is_err());
-    assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
+    let _ = min_money.minus_decimal(dec!(1));
 }
 
 #[test]
@@ -322,29 +322,27 @@ fn test_negative_multiplication() {
 }
 
 #[test]
-fn test_negative_plus_decimal() -> Result<(), FinMoneyError> {
+fn test_negative_plus_decimal() {
     let usd = FinMoneyCurrency::USD;
     let a = FinMoney::new(dec!(-10), usd);
 
-    let result = a.plus_decimal(dec!(-5))?;
+    let result = a.plus_decimal(dec!(-5));
     assert_eq!(result.get_amount(), dec!(-15));
 
-    let result2 = a.plus_decimal(dec!(15))?;
+    let result2 = a.plus_decimal(dec!(15));
     assert_eq!(result2.get_amount(), dec!(5));
-    Ok(())
 }
 
 #[test]
-fn test_negative_minus_decimal() -> Result<(), FinMoneyError> {
+fn test_negative_minus_decimal() {
     let usd = FinMoneyCurrency::USD;
     let a = FinMoney::new(dec!(-10), usd);
 
-    let result = a.minus_decimal(dec!(5))?;
+    let result = a.minus_decimal(dec!(5));
     assert_eq!(result.get_amount(), dec!(-15));
 
-    let result2 = a.minus_decimal(dec!(-20))?;
+    let result2 = a.minus_decimal(dec!(-20));
     assert_eq!(result2.get_amount(), dec!(10));
-    Ok(())
 }
 
 #[test]

@@ -189,6 +189,18 @@ impl FinMoneyCurrency {
         self.code.as_str()
     }
 
+    /// Returns the currency code as a `TinyAsciiStr<16>` for zero-copy usage.
+    #[inline]
+    pub fn get_code_tiny(&self) -> TinyAsciiStr<16> {
+        self.code
+    }
+
+    /// Returns the currency name as a `TinyAsciiStr<52>`, if available.
+    #[inline]
+    pub fn get_name_tiny(&self) -> Option<TinyAsciiStr<52>> {
+        self.name
+    }
+
     /// Returns the precision (number of decimal places) for this currency.
     #[inline]
     pub fn get_precision(&self) -> u8 {
