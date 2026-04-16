@@ -36,7 +36,7 @@ finmoney = { version = "4.0", features = ["serde"] }
 use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
-let usd = FinMoneyCurrency::USD;
+let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
 
 // Create money
 let price = FinMoney::new(dec!(10.50), usd);
@@ -60,8 +60,8 @@ if price > tax {
 use finmoney::{FinMoney, FinMoneyCurrency};
 use rust_decimal_macros::dec;
 
-let usd = FinMoneyCurrency::USD;
-let btc = FinMoneyCurrency::BTC;
+let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+let btc = FinMoneyCurrency::new(2, "BTC", None::<&str>, 8).unwrap();
 
 // From Decimal
 let m = FinMoney::new(dec!(10.50), usd);
@@ -199,8 +199,9 @@ let cents = money.to_minor_units();                 // 12345
 let f = money.to_f64_lossy();                       // 123.45
 
 // Currency conversion at a rate
+let eur_currency = FinMoneyCurrency::new(2, "EUR", None::<&str>, 2).unwrap();
 let eur = money.convert_to(
-    FinMoneyCurrency::EUR,
+    eur_currency,
     dec!(0.92),
     FinMoneyRoundingStrategy::MidpointNearestEven,
 )?;                                                 // 113.57 EUR
