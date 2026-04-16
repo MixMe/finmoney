@@ -1113,18 +1113,33 @@ impl Sub for FinMoney {
 }
 
 impl Mul<Decimal> for FinMoney {
-    type Output = Result<FinMoney, FinMoneyError>;
+    type Output = FinMoney;
 
-    fn mul(self, rhs: Decimal) -> Self::Output {
+    /// Multiplies this `FinMoney` by a `Decimal`.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow (`Decimal` holds up to 7.9×10²⁸,
+    /// so overflow is unreachable for any realistic financial amount).
+    /// Use [`FinMoney::multiplied_by_decimal()`] for the checked variant.
+    fn mul(self, rhs: Decimal) -> FinMoney {
         self.multiplied_by_decimal(rhs)
+            .expect("FinMoney * Decimal: arithmetic overflow")
     }
 }
 
 impl Mul<FinMoney> for Decimal {
-    type Output = Result<FinMoney, FinMoneyError>;
+    type Output = FinMoney;
 
-    fn mul(self, rhs: FinMoney) -> Self::Output {
+    /// Multiplies a `Decimal` by a `FinMoney`.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow. See [`FinMoney::multiplied_by_decimal()`]
+    /// for the checked variant.
+    fn mul(self, rhs: FinMoney) -> FinMoney {
         rhs.multiplied_by_decimal(self)
+            .expect("Decimal * FinMoney: arithmetic overflow")
     }
 }
 

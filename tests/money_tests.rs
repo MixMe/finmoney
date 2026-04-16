@@ -37,7 +37,7 @@ fn test_fin_money_arithmetic() -> Result<(), FinMoneyError> {
     assert_eq!(diff.get_amount(), dec!(5.25));
 
     // Multiplication with decimal
-    let product = (fin_money1 * dec!(2))?;
+    let product = fin_money1 * dec!(2);
     assert_eq!(product.get_amount(), dec!(21.00));
 
     // Division
@@ -232,11 +232,20 @@ fn test_subtraction_overflow_with_decimal_min() {
 }
 
 #[test]
+#[should_panic(expected = "arithmetic overflow")]
 fn test_multiplication_overflow_with_decimal_max() {
     let usd = FinMoneyCurrency::USD;
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
 
-    let result = max_money * dec!(2);
+    let _ = max_money * dec!(2);
+}
+
+#[test]
+fn test_multiplication_overflow_checked_returns_err() {
+    let usd = FinMoneyCurrency::USD;
+    let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
+
+    let result = max_money.multiplied_by_decimal(dec!(2));
     assert!(result.is_err());
     assert!(matches!(result, Err(FinMoneyError::ArithmeticOverflow)));
 }
@@ -299,18 +308,17 @@ fn test_negative_subtraction() -> Result<(), FinMoneyError> {
 }
 
 #[test]
-fn test_negative_multiplication() -> Result<(), FinMoneyError> {
+fn test_negative_multiplication() {
     let usd = FinMoneyCurrency::USD;
     let a = FinMoney::new(dec!(-10.50), usd);
 
     // negative * positive = negative
-    let result = (a * dec!(2))?;
+    let result = a * dec!(2);
     assert_eq!(result.get_amount(), dec!(-21.00));
 
     // negative * negative = positive
-    let result2 = (a * dec!(-3))?;
+    let result2 = a * dec!(-3);
     assert_eq!(result2.get_amount(), dec!(31.50));
-    Ok(())
 }
 
 #[test]
@@ -366,7 +374,7 @@ fn test_jpy_precision_zero_arithmetic() -> Result<(), FinMoneyError> {
     let diff = (a - b)?;
     assert_eq!(diff.get_amount(), dec!(500));
 
-    let product = (a * dec!(3))?;
+    let product = a * dec!(3);
     assert_eq!(product.get_amount(), dec!(3000));
     Ok(())
 }
