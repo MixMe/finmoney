@@ -10,8 +10,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
     let eur = FinMoneyCurrency::new(2, "EUR", Some("Euro"), 2)?;
 
-    // Or use predefined currencies
-    let btc = FinMoneyCurrency::BTC;
+    let btc = FinMoneyCurrency::new(3, "BTC", Some("Bitcoin"), 8)?;
 
     println!("1. Creating FinMoney Values");
     let price = FinMoney::new(dec!(10.50), usd);

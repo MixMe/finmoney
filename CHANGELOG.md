@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [4.0.0] - 2026-04-16
+
+### Breaking Changes
+- **Removed all predefined currency constants** (USD, EUR, BTC, ETH, GBP, JPY, CHF, CNY, RUB, USDT, SOL) and `all_predefined()`. The library is now currency-agnostic — create any currency via `FinMoneyCurrency::new()`.
+- **Removed `Default` for `FinMoney`** and `FinMoneyCurrency`. Prevents silent creation of UNDEFINED currency values — use `FinMoney::zero(currency)` for explicit zero construction.
+- **Comparisons return direct values instead of `Result`**: `compare()` → `Ordering`, `min()`/`max()` → `FinMoney`, `is_less_than()`/`is_greater_than()` etc. → `bool`. Currency mismatch panics (programming error, not runtime condition).
+- **Scalar arithmetic returns direct values**: `plus_decimal()`/`minus_decimal()` → `FinMoney`, `rescale()` → `FinMoney`. Overflow panics (unreachable at 7.9×10²⁸).
+- **`Mul<Decimal>` returns `FinMoney` directly** (was `Result`). Both `FinMoney * Decimal` and `Decimal * FinMoney`.
+
+### Added
+- `PartialOrd` and `Ord` implementations — enables `<`, `>`, `<=`, `>=` operators, `sort()`, `std::cmp::min/max`
+- `Hash` implementation with `normalize()` — 10.50 and 10.5 hash equally, enables `HashSet<FinMoney>`
+- `Add<Decimal>` and `Sub<Decimal>` operators — `money + dec!(5)`, `money - dec!(3)`
+- `AddAssign`, `SubAssign` for both `FinMoney` and `Decimal` — `money += other`, `money += dec!(5)`
+- `MulAssign<Decimal>` — `money *= dec!(2)`
+- `unchecked_plus()`, `unchecked_minus()`, `unchecked_mul()` — hot path variants that panic on mismatch
+- `try_compare()` — checked comparison returning `Result`
+- `from_minor(i64, currency)` — construct from minor units (cents, satoshi)
+- `to_minor_units() → i64` — convert to minor units
+- `from_str(&str, currency)` — parse from decimal string
+- `to_f64_lossy() → f64` — explicit lossy conversion for UI/metrics
+- `split(n)` — equal division with fair remainder distribution
+- `get_currency_code_tiny()`, `get_currency_name_tiny()` — zero-copy `TinyAsciiStr` accessors
+- `get_code_tiny()`, `get_name_tiny()` on `FinMoneyCurrency`
+- `tick_power10_dp()` is now `pub`
+- Tick normalize fix — `to_tick()` and `is_multiple_of_tick()` now normalize tick before `tick_power10_dp`, fixing incorrect fast-path for ticks with trailing zeros (e.g. `0.000100000000`)
+
+### Changed
+- Cargo.toml description updated to reflect currency-agnostic design
+- Module-level documentation rewritten for v4 API design principles
+- README fully rewritten with v3→v4 migration guide
+
 ## [3.0.0] - 2026-02-27
 
 ### Breaking Changes

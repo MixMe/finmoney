@@ -3,9 +3,25 @@
 use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 
+fn usd() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap()
+}
+
+fn eur() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(2, "EUR", None::<&str>, 2).unwrap()
+}
+
+fn btc() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(3, "BTC", None::<&str>, 8).unwrap()
+}
+
+fn jpy() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(4, "JPY", None::<&str>, 0).unwrap()
+}
+
 #[test]
 fn test_fin_money_creation() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10.50), usd);
 
     assert_eq!(fin_money.get_amount(), dec!(10.50));
@@ -15,7 +31,7 @@ fn test_fin_money_creation() {
 
 #[test]
 fn test_fin_money_zero() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let zero = FinMoney::zero(usd);
 
     assert!(zero.is_zero());
@@ -24,7 +40,7 @@ fn test_fin_money_zero() {
 
 #[test]
 fn test_fin_money_arithmetic() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
@@ -50,8 +66,8 @@ fn test_fin_money_arithmetic() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_currency_mismatch() {
-    let usd = FinMoneyCurrency::USD;
-    let eur = FinMoneyCurrency::EUR;
+    let usd = usd();
+    let eur = eur();
     let usd_fin_money = FinMoney::new(dec!(10), usd);
     let eur_fin_money = FinMoney::new(dec!(10), eur);
 
@@ -64,7 +80,7 @@ fn test_currency_mismatch() {
 
 #[test]
 fn test_division_by_zero() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10), usd);
 
     let result =
@@ -74,7 +90,7 @@ fn test_division_by_zero() {
 
 #[test]
 fn test_comparisons() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
@@ -98,7 +114,7 @@ fn test_comparisons() {
 
 #[test]
 fn test_properties() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
 
     let zero = FinMoney::new(dec!(0), usd);
     assert!(zero.is_zero());
@@ -130,7 +146,7 @@ fn test_properties() {
 
 #[test]
 fn test_mathematical_operations() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(-15.75), usd);
 
     assert_eq!(fin_money.abs().get_amount(), dec!(15.75));
@@ -142,7 +158,7 @@ fn test_mathematical_operations() {
 
 #[test]
 fn test_percentage_calculations() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let initial = FinMoney::new(dec!(100), usd);
     let current = FinMoney::new(dec!(110), usd);
 
@@ -161,7 +177,7 @@ fn test_percentage_calculations() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_rounding() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10.555), usd);
 
     let rounded_even =
@@ -179,7 +195,7 @@ fn test_rounding() {
 
 #[test]
 fn test_display() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10.50), usd);
 
     assert_eq!(format!("{}", fin_money), "10.50 USD");
@@ -187,7 +203,7 @@ fn test_display() {
 
 #[test]
 fn test_precision_with_creation() {
-    let usd = FinMoneyCurrency::USD; // 2 decimal places
+    let usd = usd(); // 2 decimal places
     let fin_money = FinMoney::new_with_precision(
         dec!(10.567),
         usd,
@@ -199,7 +215,7 @@ fn test_precision_with_creation() {
 
 #[test]
 fn test_rescale() {
-    let usd = FinMoneyCurrency::USD; // 2 decimal places
+    let usd = usd(); // 2 decimal places
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
     let rescaled = fin_money.rescale(3);
@@ -213,7 +229,7 @@ fn test_rescale() {
 
 #[test]
 fn test_addition_overflow_with_decimal_max() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
     let one = FinMoney::new(dec!(1), usd);
 
@@ -224,7 +240,7 @@ fn test_addition_overflow_with_decimal_max() {
 
 #[test]
 fn test_subtraction_overflow_with_decimal_min() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let min_money = FinMoney::new(rust_decimal::Decimal::MIN, usd);
     let one = FinMoney::new(dec!(1), usd);
 
@@ -236,7 +252,7 @@ fn test_subtraction_overflow_with_decimal_min() {
 #[test]
 #[should_panic(expected = "arithmetic overflow")]
 fn test_multiplication_overflow_with_decimal_max() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
 
     let _ = max_money * dec!(2);
@@ -244,7 +260,7 @@ fn test_multiplication_overflow_with_decimal_max() {
 
 #[test]
 fn test_multiplication_overflow_checked_returns_err() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
 
     let result = max_money.multiplied_by_decimal(dec!(2));
@@ -255,7 +271,7 @@ fn test_multiplication_overflow_checked_returns_err() {
 #[test]
 #[should_panic(expected = "arithmetic overflow")]
 fn test_plus_decimal_overflow() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
 
     let _ = max_money.plus_decimal(dec!(1));
@@ -264,7 +280,7 @@ fn test_plus_decimal_overflow() {
 #[test]
 #[should_panic(expected = "arithmetic overflow")]
 fn test_minus_decimal_overflow() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let min_money = FinMoney::new(rust_decimal::Decimal::MIN, usd);
 
     let _ = min_money.minus_decimal(dec!(1));
@@ -272,7 +288,7 @@ fn test_minus_decimal_overflow() {
 
 #[test]
 fn test_multiplied_by_money_overflow() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let max_money = FinMoney::new(rust_decimal::Decimal::MAX, usd);
     let two = FinMoney::new(dec!(2), usd);
 
@@ -287,7 +303,7 @@ fn test_multiplied_by_money_overflow() {
 
 #[test]
 fn test_negative_addition() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-10.50), usd);
     let b = FinMoney::new(dec!(-5.25), usd);
 
@@ -298,7 +314,7 @@ fn test_negative_addition() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_negative_subtraction() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-10.50), usd);
     let b = FinMoney::new(dec!(-5.25), usd);
 
@@ -309,7 +325,7 @@ fn test_negative_subtraction() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_negative_multiplication() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-10.50), usd);
 
     // negative * positive = negative
@@ -323,7 +339,7 @@ fn test_negative_multiplication() {
 
 #[test]
 fn test_negative_plus_decimal() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-10), usd);
 
     let result = a.plus_decimal(dec!(-5));
@@ -335,7 +351,7 @@ fn test_negative_plus_decimal() {
 
 #[test]
 fn test_negative_minus_decimal() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-10), usd);
 
     let result = a.minus_decimal(dec!(5));
@@ -347,7 +363,7 @@ fn test_negative_minus_decimal() {
 
 #[test]
 fn test_negative_multiplied_by_money() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(-5), usd);
     let b = FinMoney::new(dec!(-4), usd);
 
@@ -362,7 +378,7 @@ fn test_negative_multiplied_by_money() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_jpy_precision_zero_arithmetic() -> Result<(), FinMoneyError> {
-    let jpy = FinMoneyCurrency::JPY;
+    let jpy = jpy();
     let a = FinMoney::new(dec!(1000), jpy);
     let b = FinMoney::new(dec!(500), jpy);
 
@@ -379,7 +395,7 @@ fn test_jpy_precision_zero_arithmetic() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_jpy_precision_zero_rounding() {
-    let jpy = FinMoneyCurrency::JPY;
+    let jpy = jpy();
     let m = FinMoney::new(dec!(1234.56), jpy);
 
     let rounded = m.round_dp_with_strategy(0, FinMoneyRoundingStrategy::MidpointNearestEven);
@@ -388,7 +404,7 @@ fn test_jpy_precision_zero_rounding() {
 
 #[test]
 fn test_jpy_precision_zero_allocate() -> Result<(), FinMoneyError> {
-    let jpy = FinMoneyCurrency::JPY;
+    let jpy = jpy();
     let total = FinMoney::new(dec!(1000), jpy);
 
     let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
@@ -400,7 +416,7 @@ fn test_jpy_precision_zero_allocate() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_jpy_format_padded() {
-    let jpy = FinMoneyCurrency::JPY;
+    let jpy = jpy();
     let m = FinMoney::new(dec!(12345), jpy);
 
     assert_eq!(m.format_padded(0), "12345 JPY");
@@ -452,7 +468,7 @@ fn test_precision_28_format_padded() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_add_assign_same_currency() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut a = FinMoney::new(dec!(10), usd);
     let b = FinMoney::new(dec!(5.50), usd);
 
@@ -462,7 +478,7 @@ fn test_add_assign_same_currency() {
 
 #[test]
 fn test_sub_assign_same_currency() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut a = FinMoney::new(dec!(20), usd);
     let b = FinMoney::new(dec!(7.25), usd);
 
@@ -473,8 +489,8 @@ fn test_sub_assign_same_currency() {
 #[test]
 #[should_panic(expected = "currency mismatch")]
 fn test_add_assign_currency_mismatch_panics() {
-    let mut a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
-    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+    let mut a = FinMoney::new(dec!(10), usd());
+    let b = FinMoney::new(dec!(5), eur());
 
     a += b;
 }
@@ -482,15 +498,15 @@ fn test_add_assign_currency_mismatch_panics() {
 #[test]
 #[should_panic(expected = "currency mismatch")]
 fn test_sub_assign_currency_mismatch_panics() {
-    let mut a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
-    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+    let mut a = FinMoney::new(dec!(10), usd());
+    let b = FinMoney::new(dec!(5), eur());
 
     a -= b;
 }
 
 #[test]
 fn test_add_assign_accumulate_loop() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut total = FinMoney::zero(usd);
 
     for i in 1..=10 {
@@ -506,7 +522,7 @@ fn test_add_assign_accumulate_loop() {
 
 #[test]
 fn test_unchecked_plus() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(10), usd);
     let b = FinMoney::new(dec!(20), usd);
 
@@ -516,7 +532,7 @@ fn test_unchecked_plus() {
 
 #[test]
 fn test_unchecked_minus() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(30), usd);
     let b = FinMoney::new(dec!(10), usd);
 
@@ -526,7 +542,7 @@ fn test_unchecked_minus() {
 
 #[test]
 fn test_unchecked_mul() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(10.50), usd);
 
     let result = a.unchecked_mul(dec!(3));
@@ -536,8 +552,8 @@ fn test_unchecked_mul() {
 #[test]
 #[should_panic(expected = "unchecked_plus")]
 fn test_unchecked_plus_currency_mismatch_panics() {
-    let a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
-    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+    let a = FinMoney::new(dec!(10), usd());
+    let b = FinMoney::new(dec!(5), eur());
 
     a.unchecked_plus(b);
 }
@@ -545,8 +561,8 @@ fn test_unchecked_plus_currency_mismatch_panics() {
 #[test]
 #[should_panic(expected = "unchecked_minus")]
 fn test_unchecked_minus_currency_mismatch_panics() {
-    let a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
-    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+    let a = FinMoney::new(dec!(10), usd());
+    let b = FinMoney::new(dec!(5), eur());
 
     a.unchecked_minus(b);
 }
@@ -557,7 +573,7 @@ fn test_unchecked_minus_currency_mismatch_panics() {
 
 #[test]
 fn test_to_tick_with_trailing_zeros() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let price = FinMoney::new(dec!(10.567), usd);
 
     // 0.0001 with trailing zeros (simulates exchange data with extra scale)
@@ -573,7 +589,7 @@ fn test_to_tick_with_trailing_zeros() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_is_multiple_of_tick_with_trailing_zeros() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let price = FinMoney::new(dec!(10.50), usd);
 
     // 0.01 with trailing zeros
@@ -585,7 +601,7 @@ fn test_is_multiple_of_tick_with_trailing_zeros() {
 
 #[test]
 fn test_to_tick_trailing_zeros_power_of_ten_fast_path() -> Result<(), FinMoneyError> {
-    let btc = FinMoneyCurrency::BTC;
+    let btc = btc();
     let amount = FinMoney::new(dec!(0.12345678), btc);
 
     // 0.00010000 — should normalize to 0.0001 and use fast path (dp=4)
@@ -602,50 +618,50 @@ fn test_to_tick_trailing_zeros_power_of_ten_fast_path() -> Result<(), FinMoneyEr
 
 #[test]
 fn test_from_minor_usd() {
-    let m = FinMoney::from_minor(1050, FinMoneyCurrency::USD);
+    let m = FinMoney::from_minor(1050, usd());
     assert_eq!(m.get_amount(), dec!(10.50));
 }
 
 #[test]
 fn test_from_minor_btc() {
-    let m = FinMoney::from_minor(100_000_000, FinMoneyCurrency::BTC);
+    let m = FinMoney::from_minor(100_000_000, btc());
     assert_eq!(m.get_amount(), dec!(1));
 }
 
 #[test]
 fn test_from_minor_jpy() {
     // JPY has precision 0 — minor units == major units
-    let m = FinMoney::from_minor(500, FinMoneyCurrency::JPY);
+    let m = FinMoney::from_minor(500, jpy());
     assert_eq!(m.get_amount(), dec!(500));
 }
 
 #[test]
 fn test_from_minor_negative() {
-    let m = FinMoney::from_minor(-2550, FinMoneyCurrency::USD);
+    let m = FinMoney::from_minor(-2550, usd());
     assert_eq!(m.get_amount(), dec!(-25.50));
 }
 
 #[test]
 fn test_to_minor_units_usd() {
-    let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    let m = FinMoney::new(dec!(123.45), usd());
     assert_eq!(m.to_minor_units(), 12345);
 }
 
 #[test]
 fn test_to_minor_units_btc() {
-    let m = FinMoney::new(dec!(1.5), FinMoneyCurrency::BTC);
+    let m = FinMoney::new(dec!(1.5), btc());
     assert_eq!(m.to_minor_units(), 150_000_000);
 }
 
 #[test]
 fn test_to_minor_units_jpy() {
-    let m = FinMoney::new(dec!(500), FinMoneyCurrency::JPY);
+    let m = FinMoney::new(dec!(500), jpy());
     assert_eq!(m.to_minor_units(), 500);
 }
 
 #[test]
 fn test_from_minor_roundtrip() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let original = FinMoney::new(dec!(99.99), usd);
     let minor = original.to_minor_units();
     let restored = FinMoney::from_minor(minor, usd);
@@ -658,37 +674,37 @@ fn test_from_minor_roundtrip() {
 
 #[test]
 fn test_from_str_basic() -> Result<(), FinMoneyError> {
-    let m = FinMoney::from_str("10.50", FinMoneyCurrency::USD)?;
+    let m = FinMoney::from_str("10.50", usd())?;
     assert_eq!(m.get_amount(), dec!(10.50));
     Ok(())
 }
 
 #[test]
 fn test_from_str_negative() -> Result<(), FinMoneyError> {
-    let m = FinMoney::from_str("-42.99", FinMoneyCurrency::USD)?;
+    let m = FinMoney::from_str("-42.99", usd())?;
     assert_eq!(m.get_amount(), dec!(-42.99));
     Ok(())
 }
 
 #[test]
 fn test_from_str_integer() -> Result<(), FinMoneyError> {
-    let m = FinMoney::from_str("100", FinMoneyCurrency::USD)?;
+    let m = FinMoney::from_str("100", usd())?;
     assert_eq!(m.get_amount(), dec!(100));
     Ok(())
 }
 
 #[test]
 fn test_from_str_high_precision() -> Result<(), FinMoneyError> {
-    let m = FinMoney::from_str("0.12345678", FinMoneyCurrency::BTC)?;
+    let m = FinMoney::from_str("0.12345678", btc())?;
     assert_eq!(m.get_amount(), dec!(0.12345678));
     Ok(())
 }
 
 #[test]
 fn test_from_str_invalid() {
-    assert!(FinMoney::from_str("not_a_number", FinMoneyCurrency::USD).is_err());
-    assert!(FinMoney::from_str("", FinMoneyCurrency::USD).is_err());
-    assert!(FinMoney::from_str("12.34.56", FinMoneyCurrency::USD).is_err());
+    assert!(FinMoney::from_str("not_a_number", usd()).is_err());
+    assert!(FinMoney::from_str("", usd()).is_err());
+    assert!(FinMoney::from_str("12.34.56", usd()).is_err());
 }
 
 // ============================================================
@@ -697,19 +713,19 @@ fn test_from_str_invalid() {
 
 #[test]
 fn test_to_f64_lossy_basic() {
-    let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    let m = FinMoney::new(dec!(123.45), usd());
     assert_eq!(m.to_f64_lossy(), 123.45);
 }
 
 #[test]
 fn test_to_f64_lossy_zero() {
-    let m = FinMoney::zero(FinMoneyCurrency::USD);
+    let m = FinMoney::zero(usd());
     assert_eq!(m.to_f64_lossy(), 0.0);
 }
 
 #[test]
 fn test_to_f64_lossy_negative() {
-    let m = FinMoney::new(dec!(-50.75), FinMoneyCurrency::USD);
+    let m = FinMoney::new(dec!(-50.75), usd());
     assert_eq!(m.to_f64_lossy(), -50.75);
 }
 
@@ -719,7 +735,7 @@ fn test_to_f64_lossy_negative() {
 
 #[test]
 fn test_split_equal() -> Result<(), FinMoneyError> {
-    let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    let total = FinMoney::new(dec!(100.00), usd());
     let parts = total.split(3)?;
 
     assert_eq!(parts.len(), 3);
@@ -735,7 +751,7 @@ fn test_split_equal() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_split_exact() -> Result<(), FinMoneyError> {
-    let total = FinMoney::new(dec!(90.00), FinMoneyCurrency::USD);
+    let total = FinMoney::new(dec!(90.00), usd());
     let parts = total.split(3)?;
 
     assert_eq!(parts[0].get_amount(), dec!(30.00));
@@ -746,7 +762,7 @@ fn test_split_exact() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_split_one() -> Result<(), FinMoneyError> {
-    let total = FinMoney::new(dec!(42.50), FinMoneyCurrency::USD);
+    let total = FinMoney::new(dec!(42.50), usd());
     let parts = total.split(1)?;
 
     assert_eq!(parts.len(), 1);
@@ -756,7 +772,7 @@ fn test_split_one() -> Result<(), FinMoneyError> {
 
 #[test]
 fn test_split_zero_returns_error() {
-    let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    let total = FinMoney::new(dec!(100.00), usd());
     assert!(total.split(0).is_err());
 }
 
@@ -766,7 +782,7 @@ fn test_split_zero_returns_error() {
 
 #[test]
 fn test_ord_sorting() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut values = vec![
         FinMoney::new(dec!(30), usd),
         FinMoney::new(dec!(10), usd),
@@ -781,7 +797,7 @@ fn test_ord_sorting() {
 
 #[test]
 fn test_std_cmp_min_max() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let a = FinMoney::new(dec!(10), usd);
     let b = FinMoney::new(dec!(20), usd);
 
@@ -795,7 +811,7 @@ fn test_std_cmp_min_max() {
 
 #[test]
 fn test_add_decimal_operator() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let m = FinMoney::new(dec!(100), usd);
 
     let result = m + dec!(5.50);
@@ -804,7 +820,7 @@ fn test_add_decimal_operator() {
 
 #[test]
 fn test_sub_decimal_operator() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let m = FinMoney::new(dec!(100), usd);
 
     let result = m - dec!(30.25);
@@ -813,7 +829,7 @@ fn test_sub_decimal_operator() {
 
 #[test]
 fn test_add_sub_decimal_negative() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let m = FinMoney::new(dec!(50), usd);
 
     let added_neg = m + dec!(-10);
@@ -829,7 +845,7 @@ fn test_add_sub_decimal_negative() {
 
 #[test]
 fn test_mul_assign() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut m = FinMoney::new(dec!(100), usd);
 
     m *= dec!(1.5);
@@ -838,7 +854,7 @@ fn test_mul_assign() {
 
 #[test]
 fn test_mul_assign_fractional() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut m = FinMoney::new(dec!(33.33), usd);
 
     m *= dec!(3);
@@ -853,7 +869,7 @@ fn test_mul_assign_fractional() {
 fn test_hash_equal_values() {
     use std::collections::HashSet;
 
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut set = HashSet::new();
 
     set.insert(FinMoney::new(dec!(10.50), usd));
@@ -866,7 +882,7 @@ fn test_hash_equal_values() {
 fn test_hash_different_values() {
     use std::collections::HashSet;
 
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut set = HashSet::new();
 
     set.insert(FinMoney::new(dec!(10.50), usd));
@@ -880,7 +896,7 @@ fn test_hash_normalized_equality() {
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
 
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     // 10.50 and 10.5 should hash the same (normalized)
     let a = FinMoney::new(dec!(10.50), usd);
     let b = FinMoney::new(dec!(10.5), usd);
@@ -908,7 +924,7 @@ fn test_no_default_requires_explicit_currency() {
     // This is a compile-time check — FinMoney::default() should not exist.
     // If someone adds Default back, this test documents the intent.
     // The actual enforcement is that FinMoney does NOT implement Default.
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let m = FinMoney::zero(usd); // explicit is the only way
     assert!(m.is_zero());
 }
@@ -919,7 +935,7 @@ fn test_no_default_requires_explicit_currency() {
 
 #[test]
 fn test_add_assign_decimal() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut m = FinMoney::new(dec!(100), usd);
 
     m += dec!(5.50);
@@ -928,7 +944,7 @@ fn test_add_assign_decimal() {
 
 #[test]
 fn test_sub_assign_decimal() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut m = FinMoney::new(dec!(100), usd);
 
     m -= dec!(30.25);
@@ -937,7 +953,7 @@ fn test_sub_assign_decimal() {
 
 #[test]
 fn test_assign_decimal_accumulate() {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let mut total = FinMoney::zero(usd);
 
     total += dec!(10);

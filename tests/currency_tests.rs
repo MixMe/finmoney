@@ -55,7 +55,7 @@ fn test_currency_sanitized_creation() {
 
 #[test]
 fn test_currency_with_precision() -> Result<(), FinMoneyError> {
-    let usd = FinMoneyCurrency::USD;
+    let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
     let usd_high_precision = usd.with_precision(4)?;
 
     assert_eq!(usd_high_precision.get_id(), usd.get_id());
@@ -70,56 +70,25 @@ fn test_currency_with_precision() -> Result<(), FinMoneyError> {
 }
 
 #[test]
-fn test_currency_comparison() {
-    let usd1 = FinMoneyCurrency::USD;
-    let usd2 = FinMoneyCurrency::USD;
-    let eur = FinMoneyCurrency::EUR;
+fn test_currency_comparison() -> Result<(), FinMoneyError> {
+    let usd1 = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    let usd2 = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    let eur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2)?;
 
     assert!(usd1.is_same_currency(&usd2));
     assert!(!usd1.is_same_currency(&eur));
+    Ok(())
 }
 
 #[test]
-fn test_predefined_currencies() {
-    let usd = FinMoneyCurrency::USD;
-    assert_eq!(usd.get_id(), 1);
-    assert_eq!(usd.get_code(), "USD");
-    assert_eq!(usd.get_precision(), 2);
-
-    let eur = FinMoneyCurrency::EUR;
-    assert_eq!(eur.get_id(), 2);
-    assert_eq!(eur.get_code(), "EUR");
-    assert_eq!(eur.get_precision(), 2);
-
-    let btc = FinMoneyCurrency::BTC;
-    assert_eq!(btc.get_id(), 3);
-    assert_eq!(btc.get_code(), "BTC");
-    assert_eq!(btc.get_precision(), 8);
-
-    let eth = FinMoneyCurrency::ETH;
-    assert_eq!(eth.get_id(), 4);
-    assert_eq!(eth.get_code(), "ETH");
-    assert_eq!(eth.get_precision(), 18);
-}
-
-#[test]
-fn test_currency_default() {
-    let default_currency = FinMoneyCurrency::default();
-
-    assert_eq!(default_currency.get_id(), 0);
-    assert_eq!(default_currency.get_code(), "UNDEFINED");
-    assert_eq!(default_currency.get_name(), None);
-    assert_eq!(default_currency.get_precision(), 8);
-}
-
-#[test]
-fn test_currency_equality() {
-    let usd1 = FinMoneyCurrency::USD;
-    let usd2 = FinMoneyCurrency::USD;
-    let eur = FinMoneyCurrency::EUR;
+fn test_currency_equality() -> Result<(), FinMoneyError> {
+    let usd1 = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    let usd2 = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    let eur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2)?;
 
     assert_eq!(usd1, usd2);
     assert_ne!(usd1, eur);
+    Ok(())
 }
 
 #[test]
@@ -194,110 +163,4 @@ fn test_currency_new_from_tiny_performance() -> Result<(), FinMoneyError> {
     assert_eq!(currency.get_precision(), 4);
 
     Ok(())
-}
-
-// ============================================================
-// New currency constants — precision checks (Requirements 6.1, 6.2)
-// ============================================================
-
-#[test]
-fn test_gbp_constant() {
-    let gbp = FinMoneyCurrency::GBP;
-    assert_eq!(gbp.get_id(), 5);
-    assert_eq!(gbp.get_code(), "GBP");
-    assert_eq!(gbp.get_precision(), 2);
-}
-
-#[test]
-fn test_jpy_constant() {
-    let jpy = FinMoneyCurrency::JPY;
-    assert_eq!(jpy.get_id(), 6);
-    assert_eq!(jpy.get_code(), "JPY");
-    assert_eq!(jpy.get_precision(), 0);
-}
-
-#[test]
-fn test_chf_constant() {
-    let chf = FinMoneyCurrency::CHF;
-    assert_eq!(chf.get_id(), 7);
-    assert_eq!(chf.get_code(), "CHF");
-    assert_eq!(chf.get_precision(), 2);
-}
-
-#[test]
-fn test_cny_constant() {
-    let cny = FinMoneyCurrency::CNY;
-    assert_eq!(cny.get_id(), 8);
-    assert_eq!(cny.get_code(), "CNY");
-    assert_eq!(cny.get_precision(), 2);
-}
-
-#[test]
-fn test_rub_constant() {
-    let rub = FinMoneyCurrency::RUB;
-    assert_eq!(rub.get_id(), 9);
-    assert_eq!(rub.get_code(), "RUB");
-    assert_eq!(rub.get_precision(), 2);
-}
-
-#[test]
-fn test_usdt_constant() {
-    let usdt = FinMoneyCurrency::USDT;
-    assert_eq!(usdt.get_id(), 10);
-    assert_eq!(usdt.get_code(), "USDT");
-    assert_eq!(usdt.get_precision(), 6);
-}
-
-#[test]
-fn test_sol_constant() {
-    let sol = FinMoneyCurrency::SOL;
-    assert_eq!(sol.get_id(), 11);
-    assert_eq!(sol.get_code(), "SOL");
-    assert_eq!(sol.get_precision(), 9);
-}
-
-// ============================================================
-// all_predefined() tests (Requirement 6.3)
-// ============================================================
-
-#[test]
-fn test_all_predefined_count() {
-    let all = FinMoneyCurrency::all_predefined();
-    assert_eq!(all.len(), 11);
-}
-
-#[test]
-fn test_all_predefined_contains_all_currencies() {
-    let all = FinMoneyCurrency::all_predefined();
-
-    let expected = [
-        FinMoneyCurrency::USD,
-        FinMoneyCurrency::EUR,
-        FinMoneyCurrency::BTC,
-        FinMoneyCurrency::ETH,
-        FinMoneyCurrency::GBP,
-        FinMoneyCurrency::JPY,
-        FinMoneyCurrency::CHF,
-        FinMoneyCurrency::CNY,
-        FinMoneyCurrency::RUB,
-        FinMoneyCurrency::USDT,
-        FinMoneyCurrency::SOL,
-    ];
-
-    for (i, currency) in expected.iter().enumerate() {
-        assert_eq!(&all[i], currency, "Mismatch at index {}", i);
-    }
-}
-
-#[test]
-fn test_all_predefined_unique_ids() {
-    let all = FinMoneyCurrency::all_predefined();
-    let mut ids: Vec<i32> = all.iter().map(|c| c.get_id()).collect();
-    ids.sort();
-    ids.dedup();
-    assert_eq!(
-        ids.len(),
-        11,
-        "All predefined currencies must have unique IDs"
-    );
 }

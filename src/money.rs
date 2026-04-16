@@ -74,7 +74,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let FinMoney = FinMoney::new(dec!(42.50), usd);
     /// assert_eq!(FinMoney.get_amount(), dec!(42.50));
     /// ```
@@ -92,7 +92,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD; // 2 decimal places
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap(); // 2 decimal places
     /// let FinMoney = FinMoney::new_with_precision(
     ///     dec!(42.567),
     ///     usd,
@@ -121,7 +121,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let zero = FinMoney::zero(usd);
     /// assert_eq!(zero.get_amount(), dec!(0));
     /// assert!(zero.is_zero());
@@ -142,9 +142,10 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::from_i64(100, FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let m = FinMoney::from_i64(100, usd);
     /// assert_eq!(m.get_amount(), dec!(100));
-    /// assert_eq!(m.get_currency(), FinMoneyCurrency::USD);
+    /// assert_eq!(m.get_currency(), usd);
     /// ```
     #[inline]
     pub fn from_i64(value: i64, currency: FinMoneyCurrency) -> FinMoney {
@@ -163,11 +164,12 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::from_f64(10.5, FinMoneyCurrency::USD)?;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    /// let m = FinMoney::from_f64(10.5, usd)?;
     /// assert_eq!(m.get_amount(), dec!(10.5));
     ///
-    /// assert!(FinMoney::from_f64(f64::NAN, FinMoneyCurrency::USD).is_err());
-    /// assert!(FinMoney::from_f64(f64::INFINITY, FinMoneyCurrency::USD).is_err());
+    /// assert!(FinMoney::from_f64(f64::NAN, usd).is_err());
+    /// assert!(FinMoney::from_f64(f64::INFINITY, usd).is_err());
     /// # Ok::<(), FinMoneyError>(())
     /// ```
     pub fn from_f64(value: f64, currency: FinMoneyCurrency) -> Result<FinMoney, FinMoneyError> {
@@ -188,14 +190,17 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::from_minor(1050, FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let btc_cur = FinMoneyCurrency::new(2, "BTC", None::<&str>, 8).unwrap();
+    /// let jpy = FinMoneyCurrency::new(4, "JPY", None::<&str>, 0).unwrap();
+    /// let m = FinMoney::from_minor(1050, usd);
     /// assert_eq!(m.get_amount(), dec!(10.50));
     ///
-    /// let btc = FinMoney::from_minor(100_000_000, FinMoneyCurrency::BTC);
+    /// let btc = FinMoney::from_minor(100_000_000, btc_cur);
     /// assert_eq!(btc.get_amount(), dec!(1));
     ///
-    /// let jpy = FinMoney::from_minor(500, FinMoneyCurrency::JPY);
-    /// assert_eq!(jpy.get_amount(), dec!(500)); // JPY has precision 0
+    /// let jpy_money = FinMoney::from_minor(500, jpy);
+    /// assert_eq!(jpy_money.get_amount(), dec!(500)); // JPY has precision 0
     /// ```
     #[inline]
     pub fn from_minor(value: i64, currency: FinMoneyCurrency) -> FinMoney {
@@ -218,13 +223,14 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::from_str("10.50", FinMoneyCurrency::USD)?;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    /// let m = FinMoney::from_str("10.50", usd)?;
     /// assert_eq!(m.get_amount(), dec!(10.50));
     ///
-    /// let neg = FinMoney::from_str("-42.99", FinMoneyCurrency::USD)?;
+    /// let neg = FinMoney::from_str("-42.99", usd)?;
     /// assert_eq!(neg.get_amount(), dec!(-42.99));
     ///
-    /// assert!(FinMoney::from_str("not_a_number", FinMoneyCurrency::USD).is_err());
+    /// assert!(FinMoney::from_str("not_a_number", usd).is_err());
     /// # Ok::<(), FinMoneyError>(())
     /// ```
     pub fn from_str(s: &str, currency: FinMoneyCurrency) -> Result<FinMoney, FinMoneyError> {
@@ -378,7 +384,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
     /// let total = FinMoney::new(dec!(100.00), usd);
     /// let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
     /// assert_eq!(parts.len(), 3);
@@ -711,13 +717,16 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    /// let usd_cur = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let jpy_cur = FinMoneyCurrency::new(4, "JPY", None::<&str>, 0).unwrap();
+    /// let btc_cur = FinMoneyCurrency::new(2, "BTC", None::<&str>, 8).unwrap();
+    /// let usd = FinMoney::new(dec!(123.45), usd_cur);
     /// assert_eq!(usd.to_minor_units(), 12345);
     ///
-    /// let jpy = FinMoney::new(dec!(500), FinMoneyCurrency::JPY);
+    /// let jpy = FinMoney::new(dec!(500), jpy_cur);
     /// assert_eq!(jpy.to_minor_units(), 500);
     ///
-    /// let btc = FinMoney::new(dec!(1.5), FinMoneyCurrency::BTC);
+    /// let btc = FinMoney::new(dec!(1.5), btc_cur);
     /// assert_eq!(btc.to_minor_units(), 150_000_000);
     /// ```
     pub fn to_minor_units(&self) -> i64 {
@@ -739,10 +748,11 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let m = FinMoney::new(dec!(123.45), usd);
     /// assert_eq!(m.to_f64_lossy(), 123.45);
     ///
-    /// let zero = FinMoney::zero(FinMoneyCurrency::USD);
+    /// let zero = FinMoney::zero(usd);
     /// assert_eq!(zero.to_f64_lossy(), 0.0);
     /// ```
     pub fn to_f64_lossy(&self) -> f64 {
@@ -767,7 +777,8 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
     /// use rust_decimal_macros::dec;
     ///
-    /// let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+    /// let total = FinMoney::new(dec!(100.00), usd);
     /// let parts = total.split(3)?;
     /// assert_eq!(parts.len(), 3);
     /// assert_eq!(parts[0].get_amount(), dec!(33.34));
@@ -887,7 +898,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let a = FinMoney::new(dec!(10), usd);
     /// let b = FinMoney::new(dec!(20), usd);
     /// let total = a.unchecked_plus(b);
@@ -912,7 +923,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let a = FinMoney::new(dec!(30), usd);
     /// let b = FinMoney::new(dec!(10), usd);
     /// let diff = a.unchecked_minus(b);
@@ -956,7 +967,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let price = FinMoney::new(dec!(10.567), usd);
     ///
     /// // Round to nearest 0.25
@@ -1024,7 +1035,7 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoneyCurrency::USD;
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let price = FinMoney::new(dec!(10.50), usd);
     ///
     /// assert!(price.is_multiple_of_tick(dec!(0.25)));
@@ -1082,9 +1093,10 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
     /// let items = vec![
-    ///     FinMoney::new(dec!(10), FinMoneyCurrency::USD),
-    ///     FinMoney::new(dec!(20), FinMoneyCurrency::USD),
+    ///     FinMoney::new(dec!(10), usd),
+    ///     FinMoney::new(dec!(20), usd),
     /// ];
     /// let total = FinMoney::try_sum(items.into_iter()).unwrap();
     /// assert_eq!(total.get_amount(), dec!(30));
@@ -1113,14 +1125,16 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
+    /// let usd_cur = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let eur_cur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2).unwrap();
+    /// let usd = FinMoney::new(dec!(100), usd_cur);
     /// let eur = usd.convert_to(
-    ///     FinMoneyCurrency::EUR,
+    ///     eur_cur,
     ///     dec!(0.85),
     ///     FinMoneyRoundingStrategy::MidpointNearestEven,
     /// ).unwrap();
     /// assert_eq!(eur.get_amount(), dec!(85.00));
-    /// assert_eq!(eur.get_currency(), FinMoneyCurrency::EUR);
+    /// assert_eq!(eur.get_currency(), eur_cur);
     /// ```
     pub fn convert_to(
         &self,
@@ -1154,8 +1168,10 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let usd = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
-    /// let eur = FinMoney::new(dec!(85), FinMoneyCurrency::EUR);
+    /// let usd_cur = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let eur_cur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2).unwrap();
+    /// let usd = FinMoney::new(dec!(100), usd_cur);
+    /// let eur = FinMoney::new(dec!(85), eur_cur);
     /// let rate = usd.exchange_rate_to(eur).unwrap();
     /// assert_eq!(rate, dec!(0.85));
     /// ```
@@ -1178,10 +1194,12 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::new(dec!(1234567.89), FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let eur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2).unwrap();
+    /// let m = FinMoney::new(dec!(1234567.89), usd);
     /// assert_eq!(m.format_with_separator(',', '.'), "1,234,567.89 USD");
     ///
-    /// let neg = FinMoney::new(dec!(-50000), FinMoneyCurrency::EUR);
+    /// let neg = FinMoney::new(dec!(-50000), eur);
     /// assert_eq!(neg.format_with_separator('.', ','), "-50.000 EUR");
     /// ```
     pub fn format_with_separator(&self, thousands_sep: char, decimal_sep: char) -> String {
@@ -1232,13 +1250,16 @@ impl FinMoney {
     /// use finmoney::{FinMoney, FinMoneyCurrency};
     /// use rust_decimal_macros::dec;
     ///
-    /// let m = FinMoney::new(dec!(10.5), FinMoneyCurrency::USD);
+    /// let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+    /// let eur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2).unwrap();
+    /// let btc = FinMoneyCurrency::new(2, "BTC", None::<&str>, 8).unwrap();
+    /// let m = FinMoney::new(dec!(10.5), usd);
     /// assert_eq!(m.format_padded(4), "10.5000 USD");
     ///
-    /// let m2 = FinMoney::new(dec!(42), FinMoneyCurrency::EUR);
+    /// let m2 = FinMoney::new(dec!(42), eur);
     /// assert_eq!(m2.format_padded(0), "42 EUR");
     ///
-    /// let m3 = FinMoney::new(dec!(-7.123456), FinMoneyCurrency::BTC);
+    /// let m3 = FinMoney::new(dec!(-7.123456), btc);
     /// assert_eq!(m3.format_padded(3), "-7.123 BTC");
     /// ```
     pub fn format_padded(&self, dp: u32) -> String {

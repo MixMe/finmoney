@@ -5,8 +5,12 @@ use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy};
 use rust_decimal_macros::dec;
 use std::hint::black_box;
 
+fn usd() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap()
+}
+
 fn benchmark_fin_money_creation(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
 
     c.bench_function("FinMoney_creation", |b| {
         b.iter(|| FinMoney::new(black_box(dec!(10.50)), black_box(usd)))
@@ -14,7 +18,7 @@ fn benchmark_fin_money_creation(c: &mut Criterion) {
 }
 
 fn benchmark_fin_money_arithmetic(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
@@ -43,7 +47,7 @@ fn benchmark_fin_money_arithmetic(c: &mut Criterion) {
 }
 
 fn benchmark_fin_money_comparisons(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money1 = FinMoney::new(dec!(10.50), usd);
     let fin_money2 = FinMoney::new(dec!(5.25), usd);
 
@@ -61,7 +65,7 @@ fn benchmark_fin_money_comparisons(c: &mut Criterion) {
 }
 
 fn benchmark_tick_operations(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10.567), usd);
 
     c.bench_function("tick_rounding_power_of_ten", |b| {
@@ -86,7 +90,7 @@ fn benchmark_tick_operations(c: &mut Criterion) {
 }
 
 fn benchmark_percentage_calculations(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let initial = FinMoney::new(dec!(100), usd);
     let current = FinMoney::new(dec!(110), usd);
 
@@ -100,7 +104,7 @@ fn benchmark_percentage_calculations(c: &mut Criterion) {
 }
 
 fn benchmark_rounding_strategies(c: &mut Criterion) {
-    let usd = FinMoneyCurrency::USD;
+    let usd = usd();
     let fin_money = FinMoney::new(dec!(10.555), usd);
 
     c.bench_function("rounding_nearest_even", |b| {

@@ -1,0 +1,62 @@
+# finmoney
+
+> Precise money library for Rust — currency-aware arithmetic, exchange-grade tick handling, configurable rounding. Built for trading systems.
+
+finmoney represents monetary values as a pair of (Decimal amount, Currency) where Decimal is a 128-bit exact decimal (rust_decimal) and Currency is a user-defined type with id, code, name, and precision. No predefined currencies — the library is domain-agnostic.
+
+## Core Types
+
+- `FinMoney` — monetary value (amount + currency). Implements: Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Display, Add, Sub, Mul, AddAssign, SubAssign, MulAssign, Neg, Sum.
+- `FinMoneyCurrency` — currency definition (id: i32, code: TinyAsciiStr<16>, name: Option<TinyAsciiStr<52>>, precision: u8). Implements: Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Display.
+- `FinMoneyRoundingStrategy` — 7 rounding strategies (MidpointNearestEven, MidpointAwayFromZero, MidpointTowardZero, ToZero, AwayFromZero, ToNegativeInfinity, ToPositiveInfinity).
+- `FinMoneyError` — CurrencyMismatch, DivisionByZero, InvalidPrecision, InvalidTick, InvalidCurrencyCode, InvalidCurrencyName, ArithmeticOverflow, InvalidAmount.
+
+## API Design
+
+Result is returned ONLY for operations with real runtime failure modes:
+- FinMoney + FinMoney, FinMoney - FinMoney (currency mismatch)
+- divided_by_decimal, divided_by_money (division by zero)
+- from_f64, from_str (invalid input)
+- allocate, split (zero weights/parts)
+- to_tick (invalid tick <= 0)
+- convert_to (invalid rate)
+- sqrt (negative amount)
+
+Direct values (panic only on theoretical overflow at 7.9x10^28):
+- FinMoney + Decimal, FinMoney - Decimal, FinMoney * Decimal
+- +=, -=, *= (both FinMoney and Decimal)
+- <, >, <=, >= (PartialOrd/Ord — panic on currency mismatch)
+- min(), max(), compare()
+- plus_decimal(), minus_decimal(), rescale()
+- unchecked_plus(), unchecked_minus(), unchecked_mul()
+
+## Constructors
+
+- `FinMoney::new(Decimal, FinMoneyCurrency)` — from Decimal
+- `FinMoney::zero(FinMoneyCurrency)` — zero amount
+- `FinMoney::from_i64(i64, FinMoneyCurrency)` — from integer
+- `FinMoney::from_minor(i64, FinMoneyCurrency)` — from minor units (cents, satoshi)
+- `FinMoney::from_str(&str, FinMoneyCurrency) -> Result` — parse decimal string
+- `FinMoney::from_f64(f64, FinMoneyCurrency) -> Result` — from float (validates NaN/Infinity)
+- `FinMoneyCurrency::new(i32, impl Into<String>, Option<impl Into<String>>, u8) -> Result` — validated
+- `FinMoneyCurrency::new_sanitized(i32, String, Option<String>, u8)` — lenient, never fails
+- `FinMoneyCurrency::new_from_tiny(i32, TinyAsciiStr<16>, Option<TinyAsciiStr<52>>, u8) -> Result` — zero-copy
+
+## Tick Handling
+
+Exchange-grade price/quantity rounding:
+- `to_tick(Decimal, FinMoneyRoundingStrategy) -> Result` — round to any tick size
+- `to_tick_down(Decimal)`, `to_tick_up(Decimal)`, `to_tick_nearest(Decimal)` — shortcuts
+- `is_multiple_of_tick(Decimal) -> bool` — validate tick alignment
+- `tick_power10_dp(Decimal) -> Option<u32>` — detect power-of-10 ticks for fast path
+- Normalizes ticks with trailing zeros (0.000100000 → 0.0001) before processing
+
+## Dependencies
+
+- rust_decimal 1.41+ (128-bit exact decimals)
+- tinystr 0.8+ (compact ASCII strings for currency codes)
+- serde (optional feature flag)
+
+## Optional Features
+
+- `serde` — Serialize/Deserialize for FinMoney and FinMoneyCurrency. Amounts serialized as strings to preserve precision.
