@@ -783,7 +783,7 @@ fn test_split_zero_returns_error() {
 #[test]
 fn test_ord_sorting() {
     let usd = usd();
-    let mut values = vec![
+    let mut values = [
         FinMoney::new(dec!(30), usd),
         FinMoney::new(dec!(10), usd),
         FinMoney::new(dec!(20), usd),
