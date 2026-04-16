@@ -93,19 +93,24 @@ let b = FinMoney::new(dec!(30), usd);
 let sum  = (a + b)?;                           // 130 USD
 let diff = (a - b)?;                           // 70 USD
 
-// FinMoney × Decimal: returns FinMoney directly
+// FinMoney ↔ Decimal: returns FinMoney directly (no currency check needed)
+let added   = a + dec!(5);                     // 105 USD
+let subbed  = a - dec!(5);                     // 95 USD
 let tripled = a * dec!(3);                     // 300 USD
 let also    = dec!(3) * a;                     // 300 USD
 
-// In-place (panics on currency mismatch)
+// In-place operators (all direct, panic only on currency mismatch for FinMoney)
 let mut total = FinMoney::zero(usd);
-total += a;
-total -= b;
+total += a;                                    // FinMoney += FinMoney
+total -= b;                                    // FinMoney -= FinMoney
+total += dec!(10);                             // FinMoney += Decimal
+total -= dec!(5);                              // FinMoney -= Decimal
+total *= dec!(2);                              // FinMoney *= Decimal
 
 // Division (returns Result — division by zero possible)
 let half = a.divided_by_decimal(dec!(2), FinMoneyRoundingStrategy::MidpointNearestEven)?;
 
-// Scalar add/subtract: returns FinMoney directly
+// Named methods (same as operators, available for readability)
 let adjusted = a.plus_decimal(dec!(5));        // 105 USD
 let reduced  = a.minus_decimal(dec!(5));       // 95 USD
 
@@ -283,18 +288,21 @@ if let Err(e) = result {
 
 | Returns `Result` | Returns direct value |
 |-------------------|---------------------|
-| `FinMoney + FinMoney` (currency mismatch) | `FinMoney * Decimal` (overflow at 10²⁸ — unreachable) |
-| `FinMoney - FinMoney` (currency mismatch) | `Decimal * FinMoney` |
-| `divided_by_decimal` (division by zero) | `plus_decimal` / `minus_decimal` |
-| `divided_by_money` (both) | `+=` / `-=` / `-` (Neg) |
+| `FinMoney + FinMoney` (currency mismatch) | `FinMoney + Decimal`, `FinMoney - Decimal` |
+| `FinMoney - FinMoney` (currency mismatch) | `FinMoney * Decimal`, `Decimal * FinMoney` |
+| `divided_by_decimal` (division by zero) | `+=` / `-=` (FinMoney and Decimal) |
+| `divided_by_money` (both) | `*=` Decimal, `-` (Neg) |
 | `convert_to` (invalid rate) | `<` / `>` / `<=` / `>=` (PartialOrd) |
 | `from_f64` / `from_str` (invalid input) | `min` / `max` / `compare` |
 | `allocate` / `split` (zero weights/parts) | `abs` / `floor` / `ceil` / `trunc` |
 | `sqrt` (negative amount) | `rescale` |
-| `to_tick` (invalid tick ≤ 0) | `unchecked_plus` / `unchecked_minus` |
+| `to_tick` (invalid tick ≤ 0) | `unchecked_plus` / `unchecked_minus` / `unchecked_mul` |
 
 Every panicking method has a checked counterpart: `plus_money()` for `unchecked_plus()`,
 `multiplied_by_decimal()` for `*`, `try_compare()` for `compare()`.
+
+`FinMoney` implements: `Debug Clone Copy PartialEq Eq Hash PartialOrd Ord Display Neg Add Sub Mul AddAssign SubAssign MulAssign Sum`.
+Does NOT implement `Default` — use `FinMoney::zero(currency)` for explicit construction.
 
 ## Migration from v3 to v4
 
@@ -310,7 +318,7 @@ if price.is_greater_than(other) { ... } // also works, returns bool
 let min = a.min(b);                   // returns FinMoney
 ```
 
-**Scalar arithmetic returns direct values:**
+**Scalar arithmetic returns direct values (and has operators):**
 ```rust
 // v3:
 let result = money.plus_decimal(dec!(5))?;
@@ -318,20 +326,30 @@ let doubled = (money * dec!(2))?;
 let rescaled = money.rescale(4)?;
 
 // v4:
-let result = money.plus_decimal(dec!(5));   // FinMoney
-let doubled = money * dec!(2);              // FinMoney
-let rescaled = money.rescale(4);            // FinMoney
+let result = money + dec!(5);               // Add<Decimal> operator
+let doubled = money * dec!(2);              // Mul<Decimal> operator
+let rescaled = money.rescale(4);            // direct FinMoney
+money += dec!(5);                           // AddAssign<Decimal>
+money -= dec!(3);                           // SubAssign<Decimal>
+money *= dec!(2);                           // MulAssign<Decimal>
 ```
 
+**New traits:**
+- `Hash` — normalized hashing (10.50 and 10.5 hash equally), enables `HashSet<FinMoney>`
+- `PartialOrd` / `Ord` — standard `<`, `>`, `<=`, `>=` operators and `sort()`
+- `Add<Decimal>` / `Sub<Decimal>` — `money + dec!(5)` works directly
+- `AddAssign` / `SubAssign` / `MulAssign` for both `FinMoney` and `Decimal`
+- Removed `Default` — prevents silent creation of UNDEFINED currency values
+
 **New methods:**
-- `from_minor()` / `to_minor_units()` — minor unit conversion
-- `from_str()` — parse from string
-- `to_f64_lossy()` — explicit lossy f64 conversion
-- `split(n)` — equal division
+- `from_minor()` / `to_minor_units()` — minor unit conversion (cents, satoshi)
+- `from_str()` — parse from decimal string
+- `to_f64_lossy()` — explicit lossy f64 conversion for UI/metrics
+- `split(n)` — equal division with fair remainder distribution
 - `unchecked_plus()` / `unchecked_minus()` / `unchecked_mul()` — hot path variants
-- `+=` / `-=` — in-place operators
-- `PartialOrd` / `Ord` — standard comparison operators
-- `get_currency_code_tiny()` / `get_currency_name_tiny()` — zero-copy accessors
+- `try_compare()` — checked comparison returning Result
+- `get_currency_code_tiny()` / `get_currency_name_tiny()` — zero-copy TinyAsciiStr accessors
+- `tick_power10_dp()` — now public
 
 ## License
 
