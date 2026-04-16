@@ -177,6 +177,63 @@ impl FinMoney {
             .map_err(|_| FinMoneyError::InvalidAmount(format!("invalid f64: {}", value)))
     }
 
+    /// Creates a `FinMoney` from minor units (e.g., cents, satoshi) and a currency.
+    ///
+    /// The amount is computed as `value / 10^precision`, where precision comes
+    /// from the currency. For example, USD has precision 2, so
+    /// `from_minor(1050, USD)` = `10.50 USD`.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::from_minor(1050, FinMoneyCurrency::USD);
+    /// assert_eq!(m.get_amount(), dec!(10.50));
+    ///
+    /// let btc = FinMoney::from_minor(100_000_000, FinMoneyCurrency::BTC);
+    /// assert_eq!(btc.get_amount(), dec!(1));
+    ///
+    /// let jpy = FinMoney::from_minor(500, FinMoneyCurrency::JPY);
+    /// assert_eq!(jpy.get_amount(), dec!(500)); // JPY has precision 0
+    /// ```
+    #[inline]
+    pub fn from_minor(value: i64, currency: FinMoneyCurrency) -> FinMoney {
+        let amount = Decimal::new(value, currency.get_precision() as u32);
+        FinMoney::new(amount, currency)
+    }
+
+    /// Parses a `FinMoney` from a string amount and a currency.
+    ///
+    /// Accepts standard decimal strings like `"100"`, `"100.50"`, `"-42.99"`.
+    /// Does not support locale-specific separators (no thousand separators).
+    ///
+    /// # Errors
+    ///
+    /// Returns `Err(FinMoneyError::InvalidAmount)` if the string cannot be parsed.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::from_str("10.50", FinMoneyCurrency::USD)?;
+    /// assert_eq!(m.get_amount(), dec!(10.50));
+    ///
+    /// let neg = FinMoney::from_str("-42.99", FinMoneyCurrency::USD)?;
+    /// assert_eq!(neg.get_amount(), dec!(-42.99));
+    ///
+    /// assert!(FinMoney::from_str("not_a_number", FinMoneyCurrency::USD).is_err());
+    /// # Ok::<(), FinMoneyError>(())
+    /// ```
+    pub fn from_str(s: &str, currency: FinMoneyCurrency) -> Result<FinMoney, FinMoneyError> {
+        s.parse::<Decimal>()
+            .map(|d| FinMoney::new(d, currency))
+            .map_err(|_| FinMoneyError::InvalidAmount(format!("cannot parse '{}' as decimal", s)))
+    }
+
     // -- Accessors (getters) --
 
     /// Returns the amount of FinMoney as a `Decimal`.
@@ -640,6 +697,97 @@ impl FinMoney {
     #[inline]
     pub fn normalize(&self) -> FinMoney {
         FinMoney::new(self.amount.normalize(), self.currency)
+    }
+
+    // -- Conversion --
+
+    /// Returns the amount in minor units (e.g., cents for USD, satoshi for BTC).
+    ///
+    /// The conversion multiplies by `10^precision` where precision comes from
+    /// the currency. Values exceeding `i64` range are truncated toward zero.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    /// assert_eq!(usd.to_minor_units(), 12345);
+    ///
+    /// let jpy = FinMoney::new(dec!(500), FinMoneyCurrency::JPY);
+    /// assert_eq!(jpy.to_minor_units(), 500);
+    ///
+    /// let btc = FinMoney::new(dec!(1.5), FinMoneyCurrency::BTC);
+    /// assert_eq!(btc.to_minor_units(), 150_000_000);
+    /// ```
+    pub fn to_minor_units(&self) -> i64 {
+        let multiplier = Decimal::new(1, 0)
+            * Decimal::TEN.powi(self.currency.get_precision() as i64);
+        let minor = self.amount * multiplier;
+        minor.trunc().to_string().parse::<i64>().unwrap_or(0)
+    }
+
+    /// Returns the amount as a 64-bit float.
+    ///
+    /// The `_lossy` suffix makes precision loss explicit — IEEE 754 `f64` has
+    /// ~15 significant digits, which is sufficient for display and metrics
+    /// but NOT for financial arithmetic.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    /// assert_eq!(m.to_f64_lossy(), 123.45);
+    ///
+    /// let zero = FinMoney::zero(FinMoneyCurrency::USD);
+    /// assert_eq!(zero.to_f64_lossy(), 0.0);
+    /// ```
+    pub fn to_f64_lossy(&self) -> f64 {
+        use rust_decimal::prelude::ToPrimitive;
+        self.amount.to_f64().unwrap_or(f64::NAN)
+    }
+
+    // -- Splitting --
+
+    /// Divides money equally into `n` shares, distributing the remainder
+    /// to the first shares (one minimum step at a time).
+    ///
+    /// This is a convenience shortcut for `allocate()` with equal weights.
+    ///
+    /// # Errors
+    ///
+    /// Returns `FinMoneyError::InvalidAmount` if `n` is zero.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyError};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    /// let parts = total.split(3)?;
+    /// assert_eq!(parts.len(), 3);
+    /// assert_eq!(parts[0].get_amount(), dec!(33.34));
+    /// assert_eq!(parts[1].get_amount(), dec!(33.33));
+    /// assert_eq!(parts[2].get_amount(), dec!(33.33));
+    ///
+    /// // Sum is always preserved
+    /// let sum: rust_decimal::Decimal = parts.iter().map(|p| p.get_amount()).sum();
+    /// assert_eq!(sum, dec!(100.00));
+    /// # Ok::<(), FinMoneyError>(())
+    /// ```
+    pub fn split(&self, n: usize) -> Result<Vec<FinMoney>, FinMoneyError> {
+        if n == 0 {
+            return Err(FinMoneyError::InvalidAmount(
+                "cannot split into 0 parts".into(),
+            ));
+        }
+        let weights: Vec<Decimal> = vec![Decimal::ONE; n];
+        self.allocate(&weights)
     }
 
     // -- Percentage Operations --
