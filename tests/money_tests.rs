@@ -595,3 +595,196 @@ fn test_to_tick_trailing_zeros_power_of_ten_fast_path() -> Result<(), FinMoneyEr
     assert_eq!(rounded.get_amount(), dec!(0.1234));
     Ok(())
 }
+
+// ============================================================
+// from_minor / to_minor_units tests
+// ============================================================
+
+#[test]
+fn test_from_minor_usd() {
+    let m = FinMoney::from_minor(1050, FinMoneyCurrency::USD);
+    assert_eq!(m.get_amount(), dec!(10.50));
+}
+
+#[test]
+fn test_from_minor_btc() {
+    let m = FinMoney::from_minor(100_000_000, FinMoneyCurrency::BTC);
+    assert_eq!(m.get_amount(), dec!(1));
+}
+
+#[test]
+fn test_from_minor_jpy() {
+    // JPY has precision 0 — minor units == major units
+    let m = FinMoney::from_minor(500, FinMoneyCurrency::JPY);
+    assert_eq!(m.get_amount(), dec!(500));
+}
+
+#[test]
+fn test_from_minor_negative() {
+    let m = FinMoney::from_minor(-2550, FinMoneyCurrency::USD);
+    assert_eq!(m.get_amount(), dec!(-25.50));
+}
+
+#[test]
+fn test_to_minor_units_usd() {
+    let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    assert_eq!(m.to_minor_units(), 12345);
+}
+
+#[test]
+fn test_to_minor_units_btc() {
+    let m = FinMoney::new(dec!(1.5), FinMoneyCurrency::BTC);
+    assert_eq!(m.to_minor_units(), 150_000_000);
+}
+
+#[test]
+fn test_to_minor_units_jpy() {
+    let m = FinMoney::new(dec!(500), FinMoneyCurrency::JPY);
+    assert_eq!(m.to_minor_units(), 500);
+}
+
+#[test]
+fn test_from_minor_roundtrip() {
+    let usd = FinMoneyCurrency::USD;
+    let original = FinMoney::new(dec!(99.99), usd);
+    let minor = original.to_minor_units();
+    let restored = FinMoney::from_minor(minor, usd);
+    assert_eq!(original.get_amount(), restored.get_amount());
+}
+
+// ============================================================
+// from_str tests
+// ============================================================
+
+#[test]
+fn test_from_str_basic() -> Result<(), FinMoneyError> {
+    let m = FinMoney::from_str("10.50", FinMoneyCurrency::USD)?;
+    assert_eq!(m.get_amount(), dec!(10.50));
+    Ok(())
+}
+
+#[test]
+fn test_from_str_negative() -> Result<(), FinMoneyError> {
+    let m = FinMoney::from_str("-42.99", FinMoneyCurrency::USD)?;
+    assert_eq!(m.get_amount(), dec!(-42.99));
+    Ok(())
+}
+
+#[test]
+fn test_from_str_integer() -> Result<(), FinMoneyError> {
+    let m = FinMoney::from_str("100", FinMoneyCurrency::USD)?;
+    assert_eq!(m.get_amount(), dec!(100));
+    Ok(())
+}
+
+#[test]
+fn test_from_str_high_precision() -> Result<(), FinMoneyError> {
+    let m = FinMoney::from_str("0.12345678", FinMoneyCurrency::BTC)?;
+    assert_eq!(m.get_amount(), dec!(0.12345678));
+    Ok(())
+}
+
+#[test]
+fn test_from_str_invalid() {
+    assert!(FinMoney::from_str("not_a_number", FinMoneyCurrency::USD).is_err());
+    assert!(FinMoney::from_str("", FinMoneyCurrency::USD).is_err());
+    assert!(FinMoney::from_str("12.34.56", FinMoneyCurrency::USD).is_err());
+}
+
+// ============================================================
+// to_f64_lossy tests
+// ============================================================
+
+#[test]
+fn test_to_f64_lossy_basic() {
+    let m = FinMoney::new(dec!(123.45), FinMoneyCurrency::USD);
+    assert_eq!(m.to_f64_lossy(), 123.45);
+}
+
+#[test]
+fn test_to_f64_lossy_zero() {
+    let m = FinMoney::zero(FinMoneyCurrency::USD);
+    assert_eq!(m.to_f64_lossy(), 0.0);
+}
+
+#[test]
+fn test_to_f64_lossy_negative() {
+    let m = FinMoney::new(dec!(-50.75), FinMoneyCurrency::USD);
+    assert_eq!(m.to_f64_lossy(), -50.75);
+}
+
+// ============================================================
+// split tests
+// ============================================================
+
+#[test]
+fn test_split_equal() -> Result<(), FinMoneyError> {
+    let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    let parts = total.split(3)?;
+
+    assert_eq!(parts.len(), 3);
+    assert_eq!(parts[0].get_amount(), dec!(33.34));
+    assert_eq!(parts[1].get_amount(), dec!(33.33));
+    assert_eq!(parts[2].get_amount(), dec!(33.33));
+
+    // Sum invariant
+    let sum: rust_decimal::Decimal = parts.iter().map(|p| p.get_amount()).sum();
+    assert_eq!(sum, dec!(100.00));
+    Ok(())
+}
+
+#[test]
+fn test_split_exact() -> Result<(), FinMoneyError> {
+    let total = FinMoney::new(dec!(90.00), FinMoneyCurrency::USD);
+    let parts = total.split(3)?;
+
+    assert_eq!(parts[0].get_amount(), dec!(30.00));
+    assert_eq!(parts[1].get_amount(), dec!(30.00));
+    assert_eq!(parts[2].get_amount(), dec!(30.00));
+    Ok(())
+}
+
+#[test]
+fn test_split_one() -> Result<(), FinMoneyError> {
+    let total = FinMoney::new(dec!(42.50), FinMoneyCurrency::USD);
+    let parts = total.split(1)?;
+
+    assert_eq!(parts.len(), 1);
+    assert_eq!(parts[0].get_amount(), dec!(42.50));
+    Ok(())
+}
+
+#[test]
+fn test_split_zero_returns_error() {
+    let total = FinMoney::new(dec!(100.00), FinMoneyCurrency::USD);
+    assert!(total.split(0).is_err());
+}
+
+// ============================================================
+// PartialOrd / Ord operator tests
+// ============================================================
+
+#[test]
+fn test_ord_sorting() {
+    let usd = FinMoneyCurrency::USD;
+    let mut values = vec![
+        FinMoney::new(dec!(30), usd),
+        FinMoney::new(dec!(10), usd),
+        FinMoney::new(dec!(20), usd),
+    ];
+
+    values.sort();
+    assert_eq!(values[0].get_amount(), dec!(10));
+    assert_eq!(values[1].get_amount(), dec!(20));
+    assert_eq!(values[2].get_amount(), dec!(30));
+}
+
+#[test]
+fn test_std_cmp_min_max() {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(10), usd);
+    let b = FinMoney::new(dec!(20), usd);
+
+    assert_eq!(std::cmp::min(a, b).get_amount(), dec!(10));
+    assert_eq!(std::cmp::max(a, b).get_amount(), dec!(20));
+}
