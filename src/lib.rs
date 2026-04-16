@@ -1,43 +1,37 @@
 //! # Finmoney
 //!
-//! A precise, panic-free money library for Rust. It provides safe monetary arithmetic,
-//! currency-aware values, configurable rounding strategies, and exchange-grade tick handling.
-//! Designed for trading systems, bots, and financial apps where correctness and determinism matter.
+//! A precise money library for Rust. Provides currency-aware arithmetic, exchange-grade
+//! tick handling, configurable rounding, and fair allocation. Built on `rust_decimal`
+//! for exact decimal calculations. Designed for trading systems, bots, and financial
+//! apps where correctness and determinism matter.
 //!
 //! ## Architecture
 //!
 //! The crate is organized into four modules, each with a clear responsibility:
 //!
 //! - [`FinMoney`] — the core type representing a monetary value bound to a currency.
-//!   Supports checked arithmetic, allocation, currency conversion, formatting, and
+//!   Supports arithmetic, allocation, currency conversion, formatting, and
 //!   tick-based rounding.
 //! - [`FinMoneyCurrency`] — represents a currency with a code, optional name, and
-//!   decimal precision. Ships with 11 predefined currencies (USD, EUR, BTC, ETH,
-//!   GBP, JPY, CHF, CNY, RUB, USDT, SOL).
+//!   decimal precision. No predefined currencies — create your own via
+//!   `FinMoneyCurrency::new()`.
 //! - [`FinMoneyRoundingStrategy`] — an enum of rounding strategies used by arithmetic
 //!   and conversion operations.
-//! - [`FinMoneyError`] — a comprehensive error enum covering currency mismatches,
-//!   overflow, division by zero, and invalid inputs. Provides convenience predicates
-//!   like [`FinMoneyError::is_overflow()`].
+//! - [`FinMoneyError`] — error enum covering currency mismatches, division by zero,
+//!   and invalid inputs.
 //!
-//! ## Features
+//! ## Design Principles
 //!
-//! - **Precise arithmetic** — built on `rust_decimal` for exact decimal calculations.
-//!   All operations use checked arithmetic and return `Result` on overflow.
-//! - **Currency safety** — prevents mixing different currencies in operations.
-//! - **Configurable rounding** — multiple [`FinMoneyRoundingStrategy`] variants for
-//!   different use cases.
-//! - **Tick handling** — exchange-grade price/quantity rounding to valid tick sizes.
-//! - **Allocation** — split a monetary amount by weights without losing a single cent
-//!   via [`FinMoney::allocate()`].
-//! - **Currency conversion** — convert between currencies at a given rate with
-//!   [`FinMoney::convert_to()`], or compute the implied rate with
-//!   [`FinMoney::exchange_rate_to()`].
-//! - **Iterator support** — [`FinMoney`] implements [`Sum`](std::iter::Sum) and
-//!   provides [`FinMoney::try_sum()`] as a safe, non-panicking alternative.
-//! - **Flexible formatting** — [`FinMoney::format_with_separator()`] for
-//!   locale-aware thousand separators and [`FinMoney::format_padded()`] for
-//!   zero-padded decimal output.
+//! - **Ergonomic by default.** Comparisons (`<`, `>`, `<=`, `>=`), scalar arithmetic
+//!   (`+ Decimal`, `* Decimal`), and in-place operations (`+=`, `-=`, `*=`) return
+//!   direct values.
+//! - **Result where it matters.** Only operations with real runtime failure modes
+//!   (currency mismatch between two `FinMoney` values, division by zero) return `Result`.
+//! - **Checked variants available.** Every panicking method has a `Result`-returning
+//!   counterpart (`unchecked_plus` ↔ `plus_money`, `*` ↔ `multiplied_by_decimal`).
+//! - **Precise.** `rust_decimal` 128-bit decimals — no floating-point surprises.
+//! - **Currency-agnostic.** No predefined currencies — define any currency with any
+//!   precision for any domain (fiat, crypto, game tokens, loyalty points).
 //! - **Serde support** — optional serialization/deserialization (feature `serde`).
 //!   Amounts are serialized as strings to preserve precision.
 //!
@@ -59,7 +53,7 @@
 //! println!("{}", total); // 13.50 USD
 //!
 //! // Round to tick size
-//! let rounded = price.to_tick_nearest(dec!(0.25))?;
+//! let _rounded = price.to_tick_nearest(dec!(0.25))?;
 //! # Ok::<(), finmoney::FinMoneyError>(())
 //! ```
 //!
@@ -70,7 +64,7 @@
 //! ```rust
 //! use finmoney::{FinMoney, FinMoneyCurrency, dec};
 //!
-//! let usd = FinMoneyCurrency::USD;
+//! let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
 //! let total = FinMoney::new(dec!(100), usd);
 //! let parts = total.allocate(&[dec!(1), dec!(1), dec!(1)])?;
 //! // parts: [33.34, 33.33, 33.33] — sum is exactly 100.00
@@ -82,9 +76,10 @@
 //! ```rust
 //! use finmoney::{FinMoney, FinMoneyCurrency, FinMoneyRoundingStrategy, dec};
 //!
-//! let usd_amount = FinMoney::new(dec!(100), FinMoneyCurrency::USD);
-//! let eur = FinMoneyCurrency::EUR;
-//! let eur_amount = usd_amount.convert_to(eur, dec!(0.92), FinMoneyRoundingStrategy::MidpointNearestEven)?;
+//! let usd_cur = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
+//! let eur_cur = FinMoneyCurrency::new(3, "EUR", None::<&str>, 2)?;
+//! let usd_amount = FinMoney::new(dec!(100), usd_cur);
+//! let eur_amount = usd_amount.convert_to(eur_cur, dec!(0.92), FinMoneyRoundingStrategy::MidpointNearestEven)?;
 //! // 92.00 EUR
 //! # Ok::<(), finmoney::FinMoneyError>(())
 //! ```
@@ -94,7 +89,7 @@
 //! ```rust
 //! use finmoney::{FinMoney, FinMoneyCurrency, dec};
 //!
-//! let usd = FinMoneyCurrency::USD;
+//! let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
 //! let values = vec![
 //!     FinMoney::new(dec!(10), usd),
 //!     FinMoney::new(dec!(20), usd),
@@ -112,7 +107,8 @@
 //! ```rust
 //! use finmoney::{FinMoney, FinMoneyCurrency, dec};
 //!
-//! let m = FinMoney::new(dec!(1234567.89), FinMoneyCurrency::USD);
+//! let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap();
+//! let m = FinMoney::new(dec!(1234567.89), usd);
 //! assert_eq!(m.format_with_separator(',', '.'), "1,234,567.89 USD");
 //! assert_eq!(m.format_padded(4), "1234567.8900 USD");
 //! ```

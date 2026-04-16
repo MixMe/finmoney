@@ -9,13 +9,37 @@ use finmoney::{Decimal, FinMoney, FinMoneyCurrency};
 use proptest::prelude::*;
 use rust_decimal_macros::dec;
 
+fn usd() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap()
+}
+
+fn eur() -> FinMoneyCurrency {
+    FinMoneyCurrency::new(2, "EUR", None::<&str>, 2).unwrap()
+}
+
+fn test_currencies() -> Vec<FinMoneyCurrency> {
+    vec![
+        FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(2, "EUR", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(3, "BTC", None::<&str>, 8).unwrap(),
+        FinMoneyCurrency::new(4, "ETH", None::<&str>, 18).unwrap(),
+        FinMoneyCurrency::new(5, "GBP", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(6, "JPY", None::<&str>, 0).unwrap(),
+        FinMoneyCurrency::new(7, "CHF", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(8, "CNY", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(9, "RUB", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(10, "USDT", None::<&str>, 6).unwrap(),
+        FinMoneyCurrency::new(11, "SOL", None::<&str>, 9).unwrap(),
+    ]
+}
+
 // ---------------------------------------------------------------------------
 // Unit Tests
 // ---------------------------------------------------------------------------
 
 #[test]
 fn unit_roundtrip_finmoney() {
-    let money = FinMoney::new(dec!(1234.56), FinMoneyCurrency::USD);
+    let money = FinMoney::new(dec!(1234.56), usd());
     let json = serde_json::to_string(&money).unwrap();
     let deserialized: FinMoney = serde_json::from_str(&json).unwrap();
     assert_eq!(money, deserialized);
@@ -23,7 +47,7 @@ fn unit_roundtrip_finmoney() {
 
 #[test]
 fn unit_roundtrip_finmoney_currency() {
-    let currency = FinMoneyCurrency::USD;
+    let currency = usd();
     let json = serde_json::to_string(&currency).unwrap();
     let deserialized: FinMoneyCurrency = serde_json::from_str(&json).unwrap();
     assert_eq!(currency, deserialized);
@@ -31,7 +55,7 @@ fn unit_roundtrip_finmoney_currency() {
 
 #[test]
 fn unit_amount_serialized_as_string() {
-    let money = FinMoney::new(dec!(99.99), FinMoneyCurrency::EUR);
+    let money = FinMoney::new(dec!(99.99), eur());
     let json = serde_json::to_string(&money).unwrap();
     let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
     let amount_value = &parsed["amount"];
@@ -65,7 +89,7 @@ proptest! {
         amount_raw in -1_000_000_000i64..=1_000_000_000i64,
         currency_idx in 0..11usize,
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let precision = currency.get_precision() as u32;
         let effective_scale = precision.min(4);
         let amount = Decimal::new(amount_raw, effective_scale);
@@ -80,7 +104,7 @@ proptest! {
     // **Validates: Requirements 7.1, 7.2**
     #[test]
     fn p7_serde_roundtrip_finmoney_currency(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let json = serde_json::to_string(&currency).unwrap();
         let deserialized: FinMoneyCurrency = serde_json::from_str(&json).unwrap();
         prop_assert_eq!(currency, deserialized);
@@ -93,7 +117,7 @@ proptest! {
         amount_raw in -1_000_000_000i64..=1_000_000_000i64,
         currency_idx in 0..11usize,
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let precision = currency.get_precision() as u32;
         let effective_scale = precision.min(4);
         let amount = Decimal::new(amount_raw, effective_scale);

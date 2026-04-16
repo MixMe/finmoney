@@ -3,7 +3,7 @@ name = "finmoney"
 version = "4.0.0"
 edition = "2024"
 authors = ["Muntean Maxim <mixme2@gmail.com>"]
-description = "A precise, panic-free money library for Rust with currency-aware values, configurable rounding, and exchange-grade tick handling"
+description = "Precise money library for Rust — currency-aware arithmetic, exchange-grade tick handling, configurable rounding. Built for trading systems."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/MixMe/finmoney"
 homepage = "https://github.com/MixMe/finmoney"
@@ -20,7 +20,8 @@ include = [
     "README.md",
     "LICENSE-MIT",
     "LICENSE-APACHE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "llms.txt"
 ]
 rust-version = "1.90"
 

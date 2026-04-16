@@ -6,7 +6,7 @@ use rust_decimal_macros::dec;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("=== finmoney Trading & Tick Examples ===\n");
 
-    let usd = FinMoneyCurrency::USD;
+    let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
 
     println!("1. Basic Tick Rounding");
     let price = FinMoney::new(dec!(10.567), usd);
@@ -69,7 +69,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn simulate_order_book() -> Result<(), Box<dyn std::error::Error>> {
     println!("--- Simulating Order Book with 0.25 Tick Size ---");
 
-    let usd = FinMoneyCurrency::USD;
+    let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
     let tick_size = dec!(0.25);
 
     // Incoming orders with arbitrary prices
@@ -103,8 +103,8 @@ fn simulate_order_book() -> Result<(), Box<dyn std::error::Error>> {
 fn simulate_crypto_trading() -> Result<(), Box<dyn std::error::Error>> {
     println!("--- Crypto Trading with Different Tick Sizes ---");
 
-    let btc = FinMoneyCurrency::BTC;
-    let usd = FinMoneyCurrency::USD;
+    let btc = FinMoneyCurrency::new(3, "BTC", None::<&str>, 8)?;
+    let usd = FinMoneyCurrency::new(1, "USD", None::<&str>, 2)?;
 
     // BTC price in USD with 0.01 tick
     let btc_price = FinMoney::new(dec!(43567.89), usd);

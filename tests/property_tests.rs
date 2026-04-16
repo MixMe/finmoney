@@ -6,6 +6,22 @@
 use finmoney::{Decimal, FinMoney, FinMoneyCurrency, FinMoneyError, FinMoneyRoundingStrategy};
 use proptest::prelude::*;
 
+fn test_currencies() -> Vec<FinMoneyCurrency> {
+    vec![
+        FinMoneyCurrency::new(1, "USD", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(2, "EUR", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(3, "BTC", None::<&str>, 8).unwrap(),
+        FinMoneyCurrency::new(4, "ETH", None::<&str>, 18).unwrap(),
+        FinMoneyCurrency::new(5, "GBP", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(6, "JPY", None::<&str>, 0).unwrap(),
+        FinMoneyCurrency::new(7, "CHF", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(8, "CNY", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(9, "RUB", None::<&str>, 2).unwrap(),
+        FinMoneyCurrency::new(10, "USDT", None::<&str>, 6).unwrap(),
+        FinMoneyCurrency::new(11, "SOL", None::<&str>, 9).unwrap(),
+    ]
+}
+
 // ---------------------------------------------------------------------------
 // Generators
 // ---------------------------------------------------------------------------
@@ -47,7 +63,7 @@ proptest! {
     // **Validates: Requirements 2.1, 2.2, 2.3**
     #[test]
     fn p1_checked_overflow_add(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let a = FinMoney::new(Decimal::MAX, currency);
         let b = FinMoney::new(Decimal::from(1), currency);
         let result = a.plus_money(b);
@@ -57,7 +73,7 @@ proptest! {
 
     #[test]
     fn p1_checked_overflow_sub(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let a = FinMoney::new(Decimal::MIN, currency);
         let b = FinMoney::new(Decimal::from(1), currency);
         let result = a.minus_money(b);
@@ -67,7 +83,7 @@ proptest! {
 
     #[test]
     fn p1_checked_overflow_mul(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let a = FinMoney::new(Decimal::MAX, currency);
         let result = a.multiplied_by_decimal(Decimal::from(2));
         prop_assert!(result.is_err());
@@ -78,7 +94,7 @@ proptest! {
     // **Validates: Requirements 3.1, 3.2, 3.3**
     #[test]
     fn p2_display_predefined(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let display = format!("{}", currency);
         let code = currency.get_code();
         // All predefined currencies have no name set, so Display should be just the code
@@ -121,7 +137,7 @@ proptest! {
     // **Validates: Requirements 4.1**
     #[test]
     fn p3_from_i64(value: i64, currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let money = FinMoney::from_i64(value, currency);
         prop_assert_eq!(money.get_amount(), Decimal::from(value));
         prop_assert_eq!(money.get_currency(), currency);
@@ -136,7 +152,7 @@ proptest! {
         currency_idx in 0..11usize,
     ) {
         let value = raw as f64 / 100.0;
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let from_f64 = FinMoney::from_f64(value, currency);
         let try_from = FinMoney::try_from((value, currency));
         // Both should succeed for finite values
@@ -151,7 +167,7 @@ proptest! {
 
     #[test]
     fn p4_from_f64_nan_inf(currency_idx in 0..11usize) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         prop_assert!(FinMoney::from_f64(f64::NAN, currency).is_err());
         prop_assert!(FinMoney::from_f64(f64::INFINITY, currency).is_err());
         prop_assert!(FinMoney::from_f64(f64::NEG_INFINITY, currency).is_err());
@@ -169,7 +185,7 @@ proptest! {
         currency_idx in 0..11usize,
         weights in prop::collection::vec(1i64..=1000i64, 1..=10),
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let precision = currency.get_precision() as u32;
         let amount = Decimal::new(amount_raw, precision.min(4));
         let money = FinMoney::new(amount, currency);
@@ -188,7 +204,7 @@ proptest! {
         currency_idx in 0..11usize,
         weights in prop::collection::vec(1i64..=1000i64, 2..=5),
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let precision = currency.get_precision() as u32;
         // Use precision capped at 4 to keep amounts reasonable
         let effective_precision = precision.min(4);
@@ -230,7 +246,7 @@ proptest! {
         amounts in prop::collection::vec(-1_000_000i64..=1_000_000i64, 1..=20),
         currency_idx in 0..11usize,
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let moneys: Vec<FinMoney> = amounts
             .iter()
             .map(|&v| FinMoney::new(Decimal::from(v), currency))
@@ -305,8 +321,8 @@ proptest! {
         rate_raw in 1i64..=100_000i64,
         strategy in arb_rounding_strategy(),
     ) {
-        let source_currency = FinMoneyCurrency::all_predefined()[source_idx];
-        let target_currency = FinMoneyCurrency::all_predefined()[target_idx];
+        let source_currency = test_currencies()[source_idx];
+        let target_currency = test_currencies()[target_idx];
         let money = FinMoney::new(Decimal::from(amount_raw), source_currency);
         let rate = Decimal::from(rate_raw) / Decimal::from(10_000);
 
@@ -347,8 +363,8 @@ proptest! {
         multiplier in 1i64..=1_000i64,
     ) {
         let b_raw = a_raw * multiplier;
-        let a = FinMoney::new(Decimal::from(a_raw), FinMoneyCurrency::USD);
-        let b = FinMoney::new(Decimal::from(b_raw), FinMoneyCurrency::EUR);
+        let a = FinMoney::new(Decimal::from(a_raw), test_currencies()[0]);
+        let b = FinMoney::new(Decimal::from(b_raw), test_currencies()[1]);
 
         let rate = a.exchange_rate_to(b).unwrap();
         let product = a.get_amount() * rate;
@@ -371,7 +387,7 @@ proptest! {
         amount_raw in 1_000i64..=999_999_999i64,
         currency_idx in 0..11usize,
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let money = FinMoney::new(Decimal::from(amount_raw), currency);
         let formatted = money.format_with_separator(',', '.');
 
@@ -397,7 +413,7 @@ proptest! {
         currency_idx in 0..11usize,
         dp in 0u32..=10u32,
     ) {
-        let currency = FinMoneyCurrency::all_predefined()[currency_idx];
+        let currency = test_currencies()[currency_idx];
         let money = FinMoney::new(Decimal::from(amount_raw), currency);
         let formatted = money.format_padded(dp);
 

@@ -231,36 +231,22 @@ amount.rounded(FinMoneyRoundingStrategy::ToNegativeInfinity);    // 10.55 (floor
 amount.rounded(FinMoneyRoundingStrategy::ToPositiveInfinity);    // 10.56 (ceil)
 ```
 
-## Predefined Currencies
+## Currencies
 
-11 currencies available as constants:
-
-| Constant | Code | Precision |
-|----------|------|-----------|
-| `USD` | USD | 2 |
-| `EUR` | EUR | 2 |
-| `BTC` | BTC | 8 |
-| `ETH` | ETH | 18 |
-| `GBP` | GBP | 2 |
-| `JPY` | JPY | 0 |
-| `CHF` | CHF | 2 |
-| `CNY` | CNY | 2 |
-| `RUB` | RUB | 2 |
-| `USDT` | USDT | 6 |
-| `SOL` | SOL | 9 |
-
-Custom currencies:
+No predefined currencies — create any currency for any domain:
 
 ```rust
-// Standard constructor (validates inputs)
-let custom = FinMoneyCurrency::new(100, "DOGE", Some("Dogecoin"), 8)?;
+// Standard constructor (validates inputs, returns Result)
+let usd = FinMoneyCurrency::new(1, "USD", Some("US Dollar"), 2)?;
+let btc = FinMoneyCurrency::new(2, "BTC", Some("Bitcoin"), 8)?;
+let gold = FinMoneyCurrency::new(100, "GOLD", Some("Gold Token"), 4)?;
 
-// Lenient constructor (sanitizes invalid inputs)
-let custom = FinMoneyCurrency::new_sanitized(100, "DOGE".into(), None, 8);
+// Lenient constructor (sanitizes invalid inputs, never fails)
+let safe = FinMoneyCurrency::new_sanitized(1, "USD".into(), None, 2);
 
-// High-performance constructor (pre-parsed TinyAsciiStr)
-let code: tinystr::TinyAsciiStr<16> = "DOGE".parse().unwrap();
-let custom = FinMoneyCurrency::new_from_tiny(100, code, None, 8)?;
+// High-performance constructor (pre-parsed TinyAsciiStr, skips parsing)
+let code: tinystr::TinyAsciiStr<16> = "USD".parse().unwrap();
+let fast = FinMoneyCurrency::new_from_tiny(1, code, None, 2)?;
 ```
 
 ## Error Handling
