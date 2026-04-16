@@ -730,8 +730,8 @@ impl FinMoney {
     /// assert_eq!(btc.to_minor_units(), 150_000_000);
     /// ```
     pub fn to_minor_units(&self) -> i64 {
-        let multiplier = Decimal::new(1, 0)
-            * Decimal::TEN.powi(self.currency.get_precision() as i64);
+        let multiplier =
+            Decimal::new(1, 0) * Decimal::TEN.powi(self.currency.get_precision() as i64);
         let minor = self.amount * multiplier;
         minor.trunc().to_string().parse::<i64>().unwrap_or(0)
     }
@@ -1379,7 +1379,9 @@ impl AddAssign for FinMoney {
     ///
     /// Panics if currencies differ or if addition overflows.
     fn add_assign(&mut self, rhs: Self) {
-        *self = self.plus_money(rhs).expect("AddAssign: currency mismatch or overflow");
+        *self = self
+            .plus_money(rhs)
+            .expect("AddAssign: currency mismatch or overflow");
     }
 }
 
@@ -1390,7 +1392,9 @@ impl SubAssign for FinMoney {
     ///
     /// Panics if currencies differ or if subtraction overflows.
     fn sub_assign(&mut self, rhs: Self) {
-        *self = self.minus_money(rhs).expect("SubAssign: currency mismatch or overflow");
+        *self = self
+            .minus_money(rhs)
+            .expect("SubAssign: currency mismatch or overflow");
     }
 }
 
@@ -1423,7 +1427,8 @@ impl MulAssign<Decimal> for FinMoney {
     ///
     /// Panics on arithmetic overflow.
     fn mul_assign(&mut self, rhs: Decimal) {
-        *self = self.multiplied_by_decimal(rhs)
+        *self = self
+            .multiplied_by_decimal(rhs)
             .expect("MulAssign: arithmetic overflow");
     }
 }
