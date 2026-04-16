@@ -912,3 +912,39 @@ fn test_no_default_requires_explicit_currency() {
     let m = FinMoney::zero(usd); // explicit is the only way
     assert!(m.is_zero());
 }
+
+// ============================================================
+// AddAssign<Decimal> / SubAssign<Decimal> tests
+// ============================================================
+
+#[test]
+fn test_add_assign_decimal() {
+    let usd = FinMoneyCurrency::USD;
+    let mut m = FinMoney::new(dec!(100), usd);
+
+    m += dec!(5.50);
+    assert_eq!(m.get_amount(), dec!(105.50));
+}
+
+#[test]
+fn test_sub_assign_decimal() {
+    let usd = FinMoneyCurrency::USD;
+    let mut m = FinMoney::new(dec!(100), usd);
+
+    m -= dec!(30.25);
+    assert_eq!(m.get_amount(), dec!(69.75));
+}
+
+#[test]
+fn test_assign_decimal_accumulate() {
+    let usd = FinMoneyCurrency::USD;
+    let mut total = FinMoney::zero(usd);
+
+    total += dec!(10);
+    total += dec!(20);
+    total -= dec!(5);
+    total *= dec!(2);
+
+    // (10 + 20 - 5) * 2 = 50
+    assert_eq!(total.get_amount(), dec!(50));
+}
