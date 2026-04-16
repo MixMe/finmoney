@@ -1373,6 +1373,28 @@ impl SubAssign for FinMoney {
     }
 }
 
+impl AddAssign<Decimal> for FinMoney {
+    /// Adds a `Decimal` to this `FinMoney` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow.
+    fn add_assign(&mut self, rhs: Decimal) {
+        *self = self.plus_decimal(rhs);
+    }
+}
+
+impl SubAssign<Decimal> for FinMoney {
+    /// Subtracts a `Decimal` from this `FinMoney` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow.
+    fn sub_assign(&mut self, rhs: Decimal) {
+        *self = self.minus_decimal(rhs);
+    }
+}
+
 impl MulAssign<Decimal> for FinMoney {
     /// Multiplies this `FinMoney` by a `Decimal` in place.
     ///
