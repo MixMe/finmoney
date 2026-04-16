@@ -5,7 +5,8 @@ use rust_decimal::{Decimal, MathematicalOps, RoundingStrategy};
 use rust_decimal_macros::dec;
 use std::cmp::Ordering;
 use std::fmt;
-use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
+use std::hash::{Hash, Hasher};
+use std::ops::{Add, AddAssign, Mul, MulAssign, Neg, Sub, SubAssign};
 
 /// Represents a monetary value with an amount and associated currency.
 ///
@@ -33,13 +34,11 @@ pub struct FinMoney {
     currency: FinMoneyCurrency,
 }
 
-impl Default for FinMoney {
-    /// Creates a zero-valued FinMoney with the default currency.
-    fn default() -> Self {
-        Self {
-            amount: Decimal::ZERO,
-            currency: FinMoneyCurrency::default(),
-        }
+impl Hash for FinMoney {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Normalize before hashing so that 10.50 and 10.5 hash the same
+        self.amount.normalize().hash(state);
+        self.currency.hash(state);
     }
 }
 
@@ -1326,6 +1325,32 @@ impl Mul<FinMoney> for Decimal {
     }
 }
 
+impl Add<Decimal> for FinMoney {
+    type Output = FinMoney;
+
+    /// Adds a `Decimal` to this `FinMoney`.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow (unreachable for realistic financial amounts).
+    fn add(self, rhs: Decimal) -> FinMoney {
+        self.plus_decimal(rhs)
+    }
+}
+
+impl Sub<Decimal> for FinMoney {
+    type Output = FinMoney;
+
+    /// Subtracts a `Decimal` from this `FinMoney`.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow (unreachable for realistic financial amounts).
+    fn sub(self, rhs: Decimal) -> FinMoney {
+        self.minus_decimal(rhs)
+    }
+}
+
 impl AddAssign for FinMoney {
     /// Adds another `FinMoney` in place.
     ///
@@ -1345,6 +1370,18 @@ impl SubAssign for FinMoney {
     /// Panics if currencies differ or if subtraction overflows.
     fn sub_assign(&mut self, rhs: Self) {
         *self = self.minus_money(rhs).expect("SubAssign: currency mismatch or overflow");
+    }
+}
+
+impl MulAssign<Decimal> for FinMoney {
+    /// Multiplies this `FinMoney` by a `Decimal` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics on arithmetic overflow.
+    fn mul_assign(&mut self, rhs: Decimal) {
+        *self = self.multiplied_by_decimal(rhs)
+            .expect("MulAssign: arithmetic overflow");
     }
 }
 

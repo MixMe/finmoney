@@ -788,3 +788,127 @@ fn test_std_cmp_min_max() {
     assert_eq!(std::cmp::min(a, b).get_amount(), dec!(10));
     assert_eq!(std::cmp::max(a, b).get_amount(), dec!(20));
 }
+
+// ============================================================
+// Add<Decimal> / Sub<Decimal> operator tests
+// ============================================================
+
+#[test]
+fn test_add_decimal_operator() {
+    let usd = FinMoneyCurrency::USD;
+    let m = FinMoney::new(dec!(100), usd);
+
+    let result = m + dec!(5.50);
+    assert_eq!(result.get_amount(), dec!(105.50));
+}
+
+#[test]
+fn test_sub_decimal_operator() {
+    let usd = FinMoneyCurrency::USD;
+    let m = FinMoney::new(dec!(100), usd);
+
+    let result = m - dec!(30.25);
+    assert_eq!(result.get_amount(), dec!(69.75));
+}
+
+#[test]
+fn test_add_sub_decimal_negative() {
+    let usd = FinMoneyCurrency::USD;
+    let m = FinMoney::new(dec!(50), usd);
+
+    let added_neg = m + dec!(-10);
+    assert_eq!(added_neg.get_amount(), dec!(40));
+
+    let subbed_neg = m - dec!(-10);
+    assert_eq!(subbed_neg.get_amount(), dec!(60));
+}
+
+// ============================================================
+// MulAssign<Decimal> tests
+// ============================================================
+
+#[test]
+fn test_mul_assign() {
+    let usd = FinMoneyCurrency::USD;
+    let mut m = FinMoney::new(dec!(100), usd);
+
+    m *= dec!(1.5);
+    assert_eq!(m.get_amount(), dec!(150));
+}
+
+#[test]
+fn test_mul_assign_fractional() {
+    let usd = FinMoneyCurrency::USD;
+    let mut m = FinMoney::new(dec!(33.33), usd);
+
+    m *= dec!(3);
+    assert_eq!(m.get_amount(), dec!(99.99));
+}
+
+// ============================================================
+// Hash tests
+// ============================================================
+
+#[test]
+fn test_hash_equal_values() {
+    use std::collections::HashSet;
+
+    let usd = FinMoneyCurrency::USD;
+    let mut set = HashSet::new();
+
+    set.insert(FinMoney::new(dec!(10.50), usd));
+    set.insert(FinMoney::new(dec!(10.50), usd));
+
+    assert_eq!(set.len(), 1);
+}
+
+#[test]
+fn test_hash_different_values() {
+    use std::collections::HashSet;
+
+    let usd = FinMoneyCurrency::USD;
+    let mut set = HashSet::new();
+
+    set.insert(FinMoney::new(dec!(10.50), usd));
+    set.insert(FinMoney::new(dec!(10.51), usd));
+
+    assert_eq!(set.len(), 2);
+}
+
+#[test]
+fn test_hash_normalized_equality() {
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    let usd = FinMoneyCurrency::USD;
+    // 10.50 and 10.5 should hash the same (normalized)
+    let a = FinMoney::new(dec!(10.50), usd);
+    let b = FinMoney::new(dec!(10.5), usd);
+
+    let hash_a = {
+        let mut h = DefaultHasher::new();
+        a.hash(&mut h);
+        h.finish()
+    };
+    let hash_b = {
+        let mut h = DefaultHasher::new();
+        b.hash(&mut h);
+        h.finish()
+    };
+
+    assert_eq!(hash_a, hash_b);
+}
+
+// ============================================================
+// No Default — verify FinMoney requires explicit construction
+// ============================================================
+
+#[test]
+fn test_no_default_requires_explicit_currency() {
+    // This is a compile-time check — FinMoney::default() should not exist.
+    // If someone adds Default back, this test documents the intent.
+    // The actual enforcement is that FinMoney does NOT implement Default.
+    let usd = FinMoneyCurrency::USD;
+    let m = FinMoney::zero(usd); // explicit is the only way
+    assert!(m.is_zero());
+}
