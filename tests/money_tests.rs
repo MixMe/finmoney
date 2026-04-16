@@ -439,3 +439,153 @@ fn test_precision_28_format_padded() -> Result<(), FinMoneyError> {
     assert_eq!(frac.len(), 28);
     Ok(())
 }
+
+// ============================================================
+// AddAssign / SubAssign tests
+// ============================================================
+
+#[test]
+fn test_add_assign_same_currency() {
+    let usd = FinMoneyCurrency::USD;
+    let mut a = FinMoney::new(dec!(10), usd);
+    let b = FinMoney::new(dec!(5.50), usd);
+
+    a += b;
+    assert_eq!(a.get_amount(), dec!(15.50));
+}
+
+#[test]
+fn test_sub_assign_same_currency() {
+    let usd = FinMoneyCurrency::USD;
+    let mut a = FinMoney::new(dec!(20), usd);
+    let b = FinMoney::new(dec!(7.25), usd);
+
+    a -= b;
+    assert_eq!(a.get_amount(), dec!(12.75));
+}
+
+#[test]
+#[should_panic(expected = "currency mismatch")]
+fn test_add_assign_currency_mismatch_panics() {
+    let mut a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
+    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+
+    a += b;
+}
+
+#[test]
+#[should_panic(expected = "currency mismatch")]
+fn test_sub_assign_currency_mismatch_panics() {
+    let mut a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
+    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+
+    a -= b;
+}
+
+#[test]
+fn test_add_assign_accumulate_loop() {
+    let usd = FinMoneyCurrency::USD;
+    let mut total = FinMoney::zero(usd);
+
+    for i in 1..=10 {
+        total += FinMoney::new(rust_decimal::Decimal::from(i), usd);
+    }
+    // 1+2+...+10 = 55
+    assert_eq!(total.get_amount(), dec!(55));
+}
+
+// ============================================================
+// Unchecked arithmetic tests
+// ============================================================
+
+#[test]
+fn test_unchecked_plus() {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(10), usd);
+    let b = FinMoney::new(dec!(20), usd);
+
+    let result = a.unchecked_plus(b);
+    assert_eq!(result.get_amount(), dec!(30));
+}
+
+#[test]
+fn test_unchecked_minus() {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(30), usd);
+    let b = FinMoney::new(dec!(10), usd);
+
+    let result = a.unchecked_minus(b);
+    assert_eq!(result.get_amount(), dec!(20));
+}
+
+#[test]
+fn test_unchecked_mul() {
+    let usd = FinMoneyCurrency::USD;
+    let a = FinMoney::new(dec!(10.50), usd);
+
+    let result = a.unchecked_mul(dec!(3));
+    assert_eq!(result.get_amount(), dec!(31.50));
+}
+
+#[test]
+#[should_panic(expected = "unchecked_plus")]
+fn test_unchecked_plus_currency_mismatch_panics() {
+    let a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
+    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+
+    a.unchecked_plus(b);
+}
+
+#[test]
+#[should_panic(expected = "unchecked_minus")]
+fn test_unchecked_minus_currency_mismatch_panics() {
+    let a = FinMoney::new(dec!(10), FinMoneyCurrency::USD);
+    let b = FinMoney::new(dec!(5), FinMoneyCurrency::EUR);
+
+    a.unchecked_minus(b);
+}
+
+// ============================================================
+// Tick normalize fix tests (trailing zeros)
+// ============================================================
+
+#[test]
+fn test_to_tick_with_trailing_zeros() -> Result<(), FinMoneyError> {
+    let usd = FinMoneyCurrency::USD;
+    let price = FinMoney::new(dec!(10.567), usd);
+
+    // 0.0001 with trailing zeros (simulates exchange data with extra scale)
+    let tick_with_trailing = rust_decimal::Decimal::new(100000, 9); // 0.000100000
+
+    let rounded = price.to_tick_nearest(tick_with_trailing)?;
+    // Should use fast path after normalize, same as dec!(0.0001)
+    let rounded_clean = price.to_tick_nearest(dec!(0.0001))?;
+
+    assert_eq!(rounded.get_amount(), rounded_clean.get_amount());
+    Ok(())
+}
+
+#[test]
+fn test_is_multiple_of_tick_with_trailing_zeros() {
+    let usd = FinMoneyCurrency::USD;
+    let price = FinMoney::new(dec!(10.50), usd);
+
+    // 0.01 with trailing zeros
+    let tick_with_trailing = rust_decimal::Decimal::new(1000000, 8); // 0.01000000
+
+    assert!(price.is_multiple_of_tick(tick_with_trailing));
+    assert!(price.is_multiple_of_tick(dec!(0.01)));
+}
+
+#[test]
+fn test_to_tick_trailing_zeros_power_of_ten_fast_path() -> Result<(), FinMoneyError> {
+    let btc = FinMoneyCurrency::BTC;
+    let amount = FinMoney::new(dec!(0.12345678), btc);
+
+    // 0.00010000 — should normalize to 0.0001 and use fast path (dp=4)
+    let tick = rust_decimal::Decimal::new(10000, 8); // 0.00010000
+    let rounded = amount.to_tick_down(tick)?;
+
+    assert_eq!(rounded.get_amount(), dec!(0.1234));
+    Ok(())
+}

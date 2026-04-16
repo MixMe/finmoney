@@ -5,7 +5,7 @@ use rust_decimal::{Decimal, MathematicalOps, RoundingStrategy};
 use rust_decimal_macros::dec;
 use std::cmp::Ordering;
 use std::fmt;
-use std::ops::{Add, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
 /// Represents a monetary value with an amount and associated currency.
 ///
@@ -692,6 +692,70 @@ impl FinMoney {
         let rounded = self.amount.round_dp(dp);
         FinMoney::new(rounded, self.currency)
     }
+
+    // -- Unchecked Arithmetic (for hot paths where currency match is guaranteed) --
+
+    /// Adds another `FinMoney` without checking currency match or overflow.
+    ///
+    /// # Panics
+    ///
+    /// Panics if currencies differ or if addition overflows.
+    /// Use this only when the currency match is guaranteed by construction
+    /// (e.g., both values originate from the same balance column).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoneyCurrency::USD;
+    /// let a = FinMoney::new(dec!(10), usd);
+    /// let b = FinMoney::new(dec!(20), usd);
+    /// let total = a.unchecked_plus(b);
+    /// assert_eq!(total.get_amount(), dec!(30));
+    /// ```
+    #[inline]
+    pub fn unchecked_plus(self, other: FinMoney) -> FinMoney {
+        self.plus_money(other)
+            .expect("unchecked_plus: currency mismatch or overflow")
+    }
+
+    /// Subtracts another `FinMoney` without checking currency match or overflow.
+    ///
+    /// # Panics
+    ///
+    /// Panics if currencies differ or if subtraction overflows.
+    /// Use this only when the currency match is guaranteed by construction.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use finmoney::{FinMoney, FinMoneyCurrency};
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let usd = FinMoneyCurrency::USD;
+    /// let a = FinMoney::new(dec!(30), usd);
+    /// let b = FinMoney::new(dec!(10), usd);
+    /// let diff = a.unchecked_minus(b);
+    /// assert_eq!(diff.get_amount(), dec!(20));
+    /// ```
+    #[inline]
+    pub fn unchecked_minus(self, other: FinMoney) -> FinMoney {
+        self.minus_money(other)
+            .expect("unchecked_minus: currency mismatch or overflow")
+    }
+
+    /// Multiplies this `FinMoney` by a `Decimal` without overflow checking.
+    ///
+    /// # Panics
+    ///
+    /// Panics if multiplication overflows.
+    #[inline]
+    pub fn unchecked_mul(self, d: Decimal) -> FinMoney {
+        self.multiplied_by_decimal(d)
+            .expect("unchecked_mul: overflow")
+    }
 }
 // -- Tick Operations --
 
@@ -730,6 +794,10 @@ impl FinMoney {
         if tick <= Decimal::ZERO {
             return Err(FinMoneyError::InvalidTick);
         }
+        // Normalize tick to remove trailing zeros (e.g. 0.000100000000 → 0.0001).
+        // Without this, tick_power10_dp fails for ticks with trailing zeros
+        // because scale() returns the raw scale, not the significant scale.
+        let tick = tick.normalize();
         let s = strategy.to_decimal_strategy();
         // Fast path: if tick is a power of 10 (like 0.001), just round to decimal places
         if let Some(dp) = Self::tick_power10_dp(tick) {
@@ -788,6 +856,8 @@ impl FinMoney {
         if tick.is_zero() {
             return false;
         }
+        // Normalize to strip trailing zeros (same reasoning as to_tick)
+        let tick = tick.normalize();
 
         // For power-of-ten ticks, check if rounding to dp places equals original
         if let Some(dp) = Self::tick_power10_dp(tick) {
@@ -1055,6 +1125,28 @@ impl Mul<FinMoney> for Decimal {
 
     fn mul(self, rhs: FinMoney) -> Self::Output {
         rhs.multiplied_by_decimal(self)
+    }
+}
+
+impl AddAssign for FinMoney {
+    /// Adds another `FinMoney` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if currencies differ or if addition overflows.
+    fn add_assign(&mut self, rhs: Self) {
+        *self = self.plus_money(rhs).expect("AddAssign: currency mismatch or overflow");
+    }
+}
+
+impl SubAssign for FinMoney {
+    /// Subtracts another `FinMoney` in place.
+    ///
+    /// # Panics
+    ///
+    /// Panics if currencies differ or if subtraction overflows.
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = self.minus_money(rhs).expect("SubAssign: currency mismatch or overflow");
     }
 }
 
