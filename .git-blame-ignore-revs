@@ -1,0 +1,5 @@
+# Commits to ignore in git blame (bulk reformatting, no semantic change).
+# Enable locally: git config blame.ignoreRevsFile .git-blame-ignore-revs
+
+# cargo fmt --all (2026-06-06)
+f57d4ec3caf6c5f2331b4ca09377b005655a6ba0
