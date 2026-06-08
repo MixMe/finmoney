@@ -110,7 +110,7 @@ proptest! {
         prop_assert_eq!(currency, deserialized);
     }
 
-    // Feature: project-improvements, Property 8: Serde — amount как строка
+    // Feature: project-improvements, Property 8: Serde — amount as a string
     // **Validates: Requirements 7.3**
     #[test]
     fn p8_serde_amount_is_string(

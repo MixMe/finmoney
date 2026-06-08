@@ -59,7 +59,7 @@ fn arb_rounding_strategy() -> impl Strategy<Value = FinMoneyRoundingStrategy> {
 // ---------------------------------------------------------------------------
 
 proptest! {
-    // Feature: project-improvements, Property 1: Checked-арифметика обнаруживает переполнение
+    // Feature: project-improvements, Property 1: Checked arithmetic detects overflow
     // **Validates: Requirements 2.1, 2.2, 2.3**
     #[test]
     fn p1_checked_overflow_add(currency_idx in 0..11usize) {
@@ -90,7 +90,7 @@ proptest! {
         prop_assert!(result.unwrap_err().is_overflow());
     }
 
-    // Feature: project-improvements, Property 2: Display-форматирование FinMoneyCurrency
+    // Feature: project-improvements, Property 2: Display formatting of FinMoneyCurrency
     // **Validates: Requirements 3.1, 3.2, 3.3**
     #[test]
     fn p2_display_predefined(currency_idx in 0..11usize) {
@@ -133,7 +133,7 @@ proptest! {
         }
     }
 
-    // Feature: project-improvements, Property 3: from_i64 корректность
+    // Feature: project-improvements, Property 3: from_i64 correctness
     // **Validates: Requirements 4.1**
     #[test]
     fn p3_from_i64(value: i64, currency_idx in 0..11usize) {
@@ -143,7 +143,7 @@ proptest! {
         prop_assert_eq!(money.get_currency(), currency);
     }
 
-    // Feature: project-improvements, Property 4: from_f64 и TryFrom корректность
+    // Feature: project-improvements, Property 4: from_f64 and TryFrom correctness
     // **Validates: Requirements 4.2, 4.3, 4.4**
     #[test]
     fn p4_from_f64_finite(
@@ -176,7 +176,7 @@ proptest! {
         prop_assert!(FinMoney::try_from((f64::NEG_INFINITY, currency)).is_err());
     }
 
-    // Feature: project-improvements, Property 5: Allocate — инвариант суммы
+    // Feature: project-improvements, Property 5: Allocate — sum invariant
     // **Validates: Requirements 5.2**
     #[test]
     fn p5_allocate_sum_invariant(
@@ -196,7 +196,7 @@ proptest! {
         prop_assert_eq!(sum, amount, "Sum of parts {} != original amount {}", sum, amount);
     }
 
-    // Feature: project-improvements, Property 6: Allocate — пропорциональность
+    // Feature: project-improvements, Property 6: Allocate — proportionality
     // **Validates: Requirements 5.1**
     #[test]
     fn p6_allocate_proportionality(
@@ -239,7 +239,7 @@ proptest! {
         }
     }
 
-    // Feature: project-improvements, Property 9: Sum и try_sum согласованность
+    // Feature: project-improvements, Property 9: Sum and try_sum consistency
     // **Validates: Requirements 9.1, 9.3**
     #[test]
     fn p9_sum_try_sum_consistency(
@@ -278,7 +278,7 @@ proptest! {
         }
     }
 
-    // Feature: project-improvements, Property 10: Предикаты ошибок
+    // Feature: project-improvements, Property 10: Error predicates
     // **Validates: Requirements 10.3**
     #[test]
     fn p10_error_predicates(error in arb_finmoney_error()) {
@@ -311,7 +311,7 @@ proptest! {
         }
     }
 
-    // Feature: project-improvements, Property 11: convert_to корректность и точность
+    // Feature: project-improvements, Property 11: convert_to correctness and precision
     // **Validates: Requirements 11.1, 11.3**
     #[test]
     fn p11_convert_to(
@@ -379,7 +379,7 @@ proptest! {
         );
     }
 
-    // Feature: project-improvements, Property 13: format_with_separator содержит код валюты и разделители
+    // Feature: project-improvements, Property 13: format_with_separator contains currency code and separators
     // **Validates: Requirements 12.1**
     #[test]
     fn p13_format_with_separator(
@@ -405,7 +405,7 @@ proptest! {
         );
     }
 
-    // Feature: project-improvements, Property 14: format_padded дополняет нулями
+    // Feature: project-improvements, Property 14: format_padded pads with zeros
     // **Validates: Requirements 12.3**
     #[test]
     fn p14_format_padded(
