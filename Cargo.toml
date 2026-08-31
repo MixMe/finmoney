@@ -2,6 +2,13 @@
 name = "finmoney"
 version = "4.0.1"
 edition = "2024"
+# Internal from 2026-08-31 by operator decision: the repository is private and the crate is no
+# longer published. `finmoney` is HFAT's money type and its asset identity lives in the consumer's
+# registry, which makes it near-unusable to an outside caller. Consequence for v5: no semver
+# obligation to anyone outside this workspace, so the API may break freely. The 12 versions already
+# on crates.io cannot be withdrawn — crates.io yanks, it never deletes — and are deliberately left
+# as they are.
+publish = false
 authors = ["Muntean Maxim <mixme2@gmail.com>"]
 description = "Precise money library for Rust — currency-aware arithmetic, exchange-grade tick handling, configurable rounding. Built for trading systems."
 license = "MIT OR Apache-2.0"
